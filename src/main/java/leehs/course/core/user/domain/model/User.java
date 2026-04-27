@@ -1,5 +1,7 @@
 package leehs.course.core.user.domain.model;
 
+import static java.util.Objects.requireNonNull;
+
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -49,4 +51,14 @@ public class User extends AbstractEntity {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    public static User register(String email, String name, String role) {
+        User user = new User();
+
+        user.email = new Email(email);
+        user.name = requireNonNull(name);
+        user.role = UserRole.from(role);
+
+        return user;
+    }
 }
