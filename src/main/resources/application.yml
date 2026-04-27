@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: course-enrollment
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+  docker:
+    compose:
+      lifecycle-management: start-and-stop
