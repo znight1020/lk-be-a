@@ -111,6 +111,59 @@ class CourseApiTest {
     }
 
     @Test
+    void whenGetCoursesWithoutStatus_expectCourseListResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-list-all@test.com"));
+
+        Course draftCourse = courseRepository.save(CourseFixture.createCourse(creator));
+        Course openCourse = courseRepository.save(CourseFixture.createCourse(creator));
+        openCourse.open();
+
+        MvcTestResult result = mvcTester.get().uri("/courses")
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.length()", value -> assertThat(value).asNumber().isEqualTo(2))
+            .hasPathSatisfying("$[0].courseId", value -> assertThat(value).asNumber().isEqualTo(openCourse.getId().intValue()))
+            .hasPathSatisfying("$[0].status", value -> assertThat(value).isEqualTo("OPEN"))
+            .hasPathSatisfying("$[1].courseId", value -> assertThat(value).asNumber().isEqualTo(draftCourse.getId().intValue()))
+            .hasPathSatisfying("$[1].status", value -> assertThat(value).isEqualTo("DRAFT"));
+    }
+
+    @Test
+    void whenGetCoursesWithOpenStatus_expectOpenCourseListResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-list-open@test.com"));
+
+        Course draftCourse = courseRepository.save(CourseFixture.createCourse(creator));
+        Course openCourse = courseRepository.save(CourseFixture.createCourse(creator));
+        openCourse.open();
+
+        MvcTestResult result = mvcTester.get().uri("/courses?status=OPEN")
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.length()", value -> assertThat(value).asNumber().isEqualTo(1))
+            .hasPathSatisfying("$[0].courseId", value -> assertThat(value).asNumber().isEqualTo(openCourse.getId().intValue()))
+            .hasPathSatisfying("$[0].status", value -> assertThat(value).isEqualTo("OPEN"));
+
+        assertThat(draftCourse.getStatus()).isEqualTo(CourseStatus.DRAFT);
+    }
+
+    @Test
+    void whenGetCoursesWithInvalidStatus_expectBadRequestResponse() {
+        MvcTestResult result = mvcTester.get().uri("/courses?status=INVALID")
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.BAD_REQUEST)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("VALIDATION_ERROR"));
+    }
+
+    @Test
     void whenOpenCourseWithOwnerCreator_expectOpenCourseResponse() {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-open@test.com"));
 

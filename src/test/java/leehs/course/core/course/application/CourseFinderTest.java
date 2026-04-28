@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
@@ -12,8 +14,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import leehs.course.core.course.application.query.CourseFindQuery;
 import leehs.course.core.course.domain.exception.CourseNotFoundException;
 import leehs.course.core.course.domain.model.Course;
+import leehs.course.core.course.domain.model.CourseStatus;
 import leehs.course.core.course.domain.repository.CourseRepository;
 import leehs.course.core.user.domain.model.User;
 import leehs.course.core.user.domain.repository.UserRepository;
@@ -57,5 +61,39 @@ class CourseFinderTest {
 
         assertThatThrownBy(() -> courseFinder.find(nonExistentId))
             .isInstanceOf(CourseNotFoundException.class);
+    }
+
+    @Test
+    void whenFindAllWithNullStatus_expectAllCoursesReturnedInDescOrder() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+
+        Course firstCourse = courseRepository.save(CourseFixture.createCourse(creator));
+        Course secondCourse = courseRepository.save(CourseFixture.createCourse(creator));
+
+        em.flush();
+        em.clear();
+
+        List<Course> courses = courseFinder.findAll(new CourseFindQuery(null));
+        assertThat(courses).hasSize(2);
+        assertThat(courses).extracting(Course::getId)
+            .containsExactly(secondCourse.getId(), firstCourse.getId());
+    }
+
+    @Test
+    void whenFindAllWithStatus_expectOnlyMatchingCoursesReturned() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+
+        Course draftCourse = courseRepository.save(CourseFixture.createCourse(creator));
+        Course openCourse = courseRepository.save(CourseFixture.createCourse(creator));
+        openCourse.open();
+
+        em.flush();
+        em.clear();
+
+        List<Course> courses = courseFinder.findAll(new CourseFindQuery(CourseStatus.OPEN));
+        assertThat(courses).hasSize(1);
+        assertThat(courses.get(0).getId()).isEqualTo(openCourse.getId());
+        assertThat(courses.get(0).getStatus()).isEqualTo(CourseStatus.OPEN);
+        assertThat(courses).extracting(Course::getId).doesNotContain(draftCourse.getId());
     }
 }
