@@ -2,6 +2,7 @@ package leehs.course.fixture;
 
 import leehs.course.core.user.api.request.UserRegisterRequest;
 import leehs.course.core.user.application.command.UserRegisterCommand;
+import leehs.course.core.user.domain.model.User;
 
 public class UserFixture {
 
@@ -15,5 +16,13 @@ public class UserFixture {
 
     public static UserRegisterCommand createCreatorRegisterCommand(String email) {
         return new UserRegisterCommand(email, "김강사", "CREATOR");
+    }
+
+    public static User createCreator(String email) {
+        return User.register(email, "강사", "CREATOR");
+    }
+
+    public static User createStudent(String email) {
+        return User.register(email, "수강생", "STUDENT");
     }
 }
