@@ -14,10 +14,25 @@ public class CourseFixture {
     }
 
     public static Course createCourse(User user) {
+        return createCourse(user, 30);
+    }
+
+    public static Course createCourse(User user, int capacity) {
         return Course.create(user,
-            "title", "description", 10000, 30,
+            "title", "description", 10000, capacity,
             LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31)
         );
+    }
+
+    public static Course createOpenCourse(User user) {
+        return createOpenCourse(user, 30);
+    }
+
+    public static Course createOpenCourse(User user, int capacity) {
+        Course course = createCourse(user, capacity);
+        course.open();
+
+        return course;
     }
 
     public static CourseCreateCommand createCourseCreateCommand(Long userId) {
