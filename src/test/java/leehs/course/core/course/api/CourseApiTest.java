@@ -109,4 +109,115 @@ class CourseApiTest {
             .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("REQUEST_USER_ID_HEADER_MISSING"))
             .hasPathSatisfying("$.detail", value -> assertThat(value).asString().contains("X-User-Id"));
     }
+
+    @Test
+    void whenOpenCourseWithOwnerCreator_expectOpenCourseResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-open@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createCourse(creator));
+
+        MvcTestResult result = mvcTester.patch().uri("/courses/" + course.getId() + "/open")
+            .header("X-User-Id", creator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.courseId", value -> assertThat(value).asNumber().isEqualTo(course.getId().intValue()))
+            .hasPathSatisfying("$.status", value -> assertThat(value).isEqualTo("OPEN"));
+
+        Course openedCourse = courseRepository.findById(course.getId()).orElseThrow();
+        assertThat(openedCourse.getStatus()).isEqualTo(CourseStatus.OPEN);
+    }
+
+    @Test
+    void whenOpenCourseWithStudentUserId_expectForbiddenResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-open-student@test.com"));
+        User student = userRegister.register(UserFixture.createStudentRegisterCommand("student-open@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createCourse(creator));
+
+        MvcTestResult result = mvcTester.patch().uri("/courses/" + course.getId() + "/open")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_MANAGEMENT_FORBIDDEN"));
+    }
+
+    @Test
+    void whenOpenCourseWithNonOwnerCreator_expectForbiddenResponse() {
+        User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("owner-open@test.com"));
+        User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another-open@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createCourse(owner));
+
+        MvcTestResult result = mvcTester.patch().uri("/courses/" + course.getId() + "/open")
+            .header("X-User-Id", anotherCreator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_NOT_OWNER"));
+    }
+
+    @Test
+    void whenCloseCourseWithOwnerCreator_expectClosedCourseResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-close@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createCourse(creator));
+        course.open();
+
+        MvcTestResult result = mvcTester.patch().uri("/courses/" + course.getId() + "/close")
+            .header("X-User-Id", creator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.courseId", value -> assertThat(value).asNumber().isEqualTo(course.getId().intValue()))
+            .hasPathSatisfying("$.status", value -> assertThat(value).isEqualTo("CLOSED"));
+
+        Course closedCourse = courseRepository.findById(course.getId()).orElseThrow();
+        assertThat(closedCourse.getStatus()).isEqualTo(CourseStatus.CLOSED);
+    }
+
+    @Test
+    void whenCloseCourseWithStudentUserId_expectForbiddenResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-close-student@test.com"));
+        User student = userRegister.register(UserFixture.createStudentRegisterCommand("student-close@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createCourse(creator));
+        course.open();
+
+        MvcTestResult result = mvcTester.patch().uri("/courses/" + course.getId() + "/close")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_MANAGEMENT_FORBIDDEN"));
+    }
+
+    @Test
+    void whenCloseCourseWithNonOwnerCreator_expectForbiddenResponse() {
+        User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("owner-close@test.com"));
+        User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another-close@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createCourse(owner));
+        course.open();
+
+        MvcTestResult result = mvcTester.patch().uri("/courses/" + course.getId() + "/close")
+            .header("X-User-Id", anotherCreator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_NOT_OWNER"));
+    }
 }
