@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import leehs.course.core.course.application.query.CourseFindQuery;
+import leehs.course.core.course.application.result.CourseDetailResult;
 import leehs.course.core.course.domain.exception.CourseNotFoundException;
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.model.CourseStatus;
@@ -95,5 +96,35 @@ class CourseFinderTest {
         assertThat(courses.get(0).getId()).isEqualTo(openCourse.getId());
         assertThat(courses.get(0).getStatus()).isEqualTo(CourseStatus.OPEN);
         assertThat(courses).extracting(Course::getId).doesNotContain(draftCourse.getId());
+    }
+
+    @Test
+    void whenFindDetailWithExistingCourse_expectCourseDetailReturned() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createCourse(creator));
+
+        em.flush();
+        em.clear();
+
+        CourseDetailResult result = courseFinder.findDetail(course.getId());
+        assertThat(result.id()).isEqualTo(course.getId());
+        assertThat(result.creatorId()).isEqualTo(creator.getId());
+        assertThat(result.title()).isEqualTo(course.getTitle());
+        assertThat(result.description()).isEqualTo(course.getDescription());
+        assertThat(result.price()).isEqualTo(course.getPrice());
+        assertThat(result.capacity()).isEqualTo(course.getCapacity());
+        assertThat(result.startDate()).isEqualTo(course.getStartDate());
+        assertThat(result.endDate()).isEqualTo(course.getEndDate());
+        assertThat(result.status()).isEqualTo(course.getStatus());
+        assertThat(result.currentEnrollmentCount()).isEqualTo(0L);
+    }
+
+    @Test
+    void whenFindDetailWithNonExistingCourse_expectCourseNotFoundException() {
+        Long nonExistentId = 999L;
+
+        assertThatThrownBy(() -> courseFinder.findDetail(nonExistentId))
+            .isInstanceOf(CourseNotFoundException.class);
     }
 }

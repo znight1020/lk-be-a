@@ -112,7 +112,7 @@ class CourseApiTest {
 
     @Test
     void whenGetCoursesWithoutStatus_expectCourseListResponse() {
-        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-list-all@test.com"));
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
         Course draftCourse = courseRepository.save(CourseFixture.createCourse(creator));
         Course openCourse = courseRepository.save(CourseFixture.createCourse(creator));
@@ -133,7 +133,7 @@ class CourseApiTest {
 
     @Test
     void whenGetCoursesWithOpenStatus_expectOpenCourseListResponse() {
-        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-list-open@test.com"));
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
         Course draftCourse = courseRepository.save(CourseFixture.createCourse(creator));
         Course openCourse = courseRepository.save(CourseFixture.createCourse(creator));
@@ -164,8 +164,41 @@ class CourseApiTest {
     }
 
     @Test
+    void whenGetCourseWithExistingId_expectCourseDetailResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createCourse(creator));
+
+        MvcTestResult result = mvcTester.get().uri("/courses/" + course.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.courseId", value -> assertThat(value).asNumber().isEqualTo(course.getId().intValue()))
+            .hasPathSatisfying("$.creatorId", value -> assertThat(value).asNumber().isEqualTo(creator.getId().intValue()))
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo(course.getTitle()))
+            .hasPathSatisfying("$.description", value -> assertThat(value).isEqualTo(course.getDescription()))
+            .hasPathSatisfying("$.price", value -> assertThat(value).asNumber().isEqualTo(course.getPrice()))
+            .hasPathSatisfying("$.capacity", value -> assertThat(value).asNumber().isEqualTo(course.getCapacity()))
+            .hasPathSatisfying("$.currentEnrollmentCount", value -> assertThat(value).asNumber().isEqualTo(0))
+            .hasPathSatisfying("$.status", value -> assertThat(value).isEqualTo(course.getStatus().name()));
+    }
+
+    @Test
+    void whenGetCourseWithNonExistingId_expectNotFoundResponse() {
+        MvcTestResult result = mvcTester.get().uri("/courses/999")
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.NOT_FOUND)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_NOT_FOUND"));
+    }
+
+    @Test
     void whenOpenCourseWithOwnerCreator_expectOpenCourseResponse() {
-        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-open@test.com"));
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
         Course course = courseRepository.save(CourseFixture.createCourse(creator));
 
@@ -185,8 +218,8 @@ class CourseApiTest {
 
     @Test
     void whenOpenCourseWithStudentUserId_expectForbiddenResponse() {
-        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-open-student@test.com"));
-        User student = userRegister.register(UserFixture.createStudentRegisterCommand("student-open@test.com"));
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
+        User student = userRegister.register(UserFixture.createStudentRegisterCommand("student@test.com"));
 
         Course course = courseRepository.save(CourseFixture.createCourse(creator));
 
@@ -202,8 +235,8 @@ class CourseApiTest {
 
     @Test
     void whenOpenCourseWithNonOwnerCreator_expectForbiddenResponse() {
-        User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("owner-open@test.com"));
-        User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another-open@test.com"));
+        User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
+        User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another@test.com"));
 
         Course course = courseRepository.save(CourseFixture.createCourse(owner));
 
@@ -219,7 +252,7 @@ class CourseApiTest {
 
     @Test
     void whenCloseCourseWithOwnerCreator_expectClosedCourseResponse() {
-        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-close@test.com"));
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
         Course course = courseRepository.save(CourseFixture.createCourse(creator));
         course.open();
@@ -240,8 +273,8 @@ class CourseApiTest {
 
     @Test
     void whenCloseCourseWithStudentUserId_expectForbiddenResponse() {
-        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator-close-student@test.com"));
-        User student = userRegister.register(UserFixture.createStudentRegisterCommand("student-close@test.com"));
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
+        User student = userRegister.register(UserFixture.createStudentRegisterCommand("student@test.com"));
 
         Course course = courseRepository.save(CourseFixture.createCourse(creator));
         course.open();
@@ -258,8 +291,8 @@ class CourseApiTest {
 
     @Test
     void whenCloseCourseWithNonOwnerCreator_expectForbiddenResponse() {
-        User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("owner-close@test.com"));
-        User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another-close@test.com"));
+        User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
+        User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another@test.com"));
 
         Course course = courseRepository.save(CourseFixture.createCourse(owner));
         course.open();

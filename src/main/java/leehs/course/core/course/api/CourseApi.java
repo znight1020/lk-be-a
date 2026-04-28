@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 
 import leehs.course.core.course.api.request.CourseCreateRequest;
 import leehs.course.core.course.api.response.CourseCreateResponse;
+import leehs.course.core.course.api.response.CourseDetailResponse;
 import leehs.course.core.course.api.response.CourseStatusModifyResponse;
 import leehs.course.core.course.api.response.CourseSummaryResponse;
 import leehs.course.core.course.application.CourseCreator;
@@ -29,6 +30,7 @@ import leehs.course.core.course.application.CourseModifier;
 import leehs.course.core.course.application.command.CourseCreateCommand;
 import leehs.course.core.course.application.command.CourseStatusModifyCommand;
 import leehs.course.core.course.application.query.CourseFindQuery;
+import leehs.course.core.course.application.result.CourseDetailResult;
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.model.CourseStatus;
 import leehs.course.global.web.RequestUserId;
@@ -72,6 +74,13 @@ public class CourseApi {
         return courses.stream()
             .map(CourseSummaryResponse::of)
             .toList();
+    }
+
+    @GetMapping("/{courseId}")
+    public CourseDetailResponse getCourse(@PathVariable Long courseId) {
+        CourseDetailResult result = courseFinder.findDetail(courseId);
+
+        return CourseDetailResponse.of(result);
     }
 
     @PatchMapping("/{courseId}/open")

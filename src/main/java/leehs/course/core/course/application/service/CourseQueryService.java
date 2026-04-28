@@ -1,5 +1,8 @@
 package leehs.course.core.course.application.service;
 
+import static leehs.course.core.enrollment.domain.model.EnrollmentStatus.CONFIRMED;
+import static leehs.course.core.enrollment.domain.model.EnrollmentStatus.PENDING;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -9,9 +12,11 @@ import lombok.RequiredArgsConstructor;
 
 import leehs.course.core.course.application.CourseFinder;
 import leehs.course.core.course.application.query.CourseFindQuery;
+import leehs.course.core.course.application.result.CourseDetailResult;
 import leehs.course.core.course.domain.exception.CourseNotFoundException;
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.repository.CourseRepository;
+import leehs.course.core.course.domain.repository.projection.CourseDetailProjection;
 
 @Service
 @Transactional(readOnly = true)
@@ -32,5 +37,13 @@ public class CourseQueryService implements CourseFinder {
             return courseRepository.findAllByOrderByIdDesc();
 
         return courseRepository.findAllByStatusOrderByIdDesc(query.status());
+    }
+
+    @Override
+    public CourseDetailResult findDetail(Long courseId) {
+        CourseDetailProjection projection = courseRepository.findDetailById(courseId, List.of(PENDING, CONFIRMED))
+            .orElseThrow(CourseNotFoundException::new);
+
+        return CourseDetailResult.of(projection);
     }
 }
