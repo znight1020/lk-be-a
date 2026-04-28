@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import leehs.course.core.user.domain.exception.UserNotFoundException;
 import leehs.course.core.user.domain.model.User;
 import leehs.course.core.user.domain.repository.UserRepository;
 
@@ -46,6 +47,6 @@ class UserFinderTest {
         Long nonExistentId = 999L;
 
         assertThatThrownBy(() -> userFinder.find(nonExistentId))
-            .isInstanceOf(IllegalArgumentException.class);
+            .isInstanceOf(UserNotFoundException.class);
     }
 }

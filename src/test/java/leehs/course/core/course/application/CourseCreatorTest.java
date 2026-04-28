@@ -13,6 +13,7 @@ import leehs.course.core.course.application.command.CourseCreateCommand;
 import leehs.course.core.course.domain.exception.CourseManagementForbiddenException;
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.model.CourseStatus;
+import leehs.course.core.user.domain.exception.UserNotFoundException;
 import leehs.course.core.user.domain.model.User;
 import leehs.course.core.user.domain.repository.UserRepository;
 import leehs.course.fixture.CourseFixture;
@@ -59,6 +60,6 @@ class CourseCreatorTest {
         CourseCreateCommand command = CourseFixture.createCourseCreateCommand(nonExistentUserId);
 
         assertThatThrownBy(() -> courseCreator.create(command))
-            .isInstanceOf(IllegalArgumentException.class);
+            .isInstanceOf(UserNotFoundException.class);
     }
 }

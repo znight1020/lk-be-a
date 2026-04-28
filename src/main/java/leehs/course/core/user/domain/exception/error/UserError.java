@@ -6,6 +6,7 @@ import lombok.Getter;
 public enum UserError {
 
     // USER
+    USER_NOT_FOUND(404, "회원을 찾을 수 없습니다"),
     USER_ROLE_INVALID(400, "역할은 CREATOR 또는 STUDENT 여야 합니다"),
 
     // EMAIL
