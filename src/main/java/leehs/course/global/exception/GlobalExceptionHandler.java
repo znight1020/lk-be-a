@@ -5,6 +5,9 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 import java.time.LocalDateTime;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -33,6 +36,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApplicationException.class)
     public ProblemDetail handleApplicationException(ApplicationException ex) {
         return createProblemDetail(HttpStatusCode.valueOf(ex.getStatus()), ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleConstraintViolationException(ConstraintViolationException ex) {
+        String detailMessage = ex.getConstraintViolations().stream()
+            .findFirst()
+            .map(ConstraintViolation::getMessage)
+            .orElse("잘못된 요청 값입니다");
+
+        return createProblemDetail(BAD_REQUEST, "VALIDATION_ERROR", detailMessage);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
