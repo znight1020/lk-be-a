@@ -9,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -29,7 +30,13 @@ import leehs.course.core.user.domain.model.User;
 
 @Getter
 @Entity
-@Table(name = "enrollments")
+@Table(
+    name = "enrollments",
+    indexes = {
+        @Index(name = "idx_enrollments_course_id_status", columnList = "course_id, status"),
+        @Index(name = "idx_enrollments_student_id_created_at", columnList = "student_id, created_at")
+    }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Enrollment extends AbstractEntity {
 
