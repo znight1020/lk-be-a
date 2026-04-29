@@ -9,6 +9,10 @@
     -- course id 2: OPEN 상태, 정원은 5명이며 아직 수강 신청이 없는 빈 강의
     -- course id 3: DRAFT 상태, 아직 모집 전인 강의
     -- course id 4: CLOSED 상태, 모집이 마감된 강의
+-- Enrollment
+    -- enrollment id 1: course id 1에 수강생2가 신청한 상태 (PENDING)
+    -- enrollment id 2: course id 1에 수강생3가 신청하여 확정된 상태 (CONFIRMED)
+    -- enrollment id 3: course id 4에 수강생2가 신청하였다가 취소한 상태 (CANCELLED)
 
 delete from enrollments;
 delete from courses;
@@ -28,7 +32,8 @@ insert into courses (id, creator_id, title, description, price, capacity, start_
 
 insert into enrollments (id, course_id, student_id, status, created_at, confirmed_at, cancelled_at, updated_at) values
     (1, 1, 102, 'PENDING', CURRENT_TIMESTAMP - INTERVAL 1 DAY, null, null, CURRENT_TIMESTAMP - INTERVAL 1 DAY),
-    (2, 1, 103, 'CONFIRMED', CURRENT_TIMESTAMP - INTERVAL 3 DAY, CURRENT_TIMESTAMP - INTERVAL 2 DAY, null, CURRENT_TIMESTAMP - INTERVAL 2 DAY), (3, 4, 2, 'CANCELLED', CURRENT_TIMESTAMP - INTERVAL 6 DAY, null, CURRENT_TIMESTAMP - INTERVAL 5 DAY, CURRENT_TIMESTAMP - INTERVAL 5 DAY);
+    (2, 1, 103, 'CONFIRMED', CURRENT_TIMESTAMP - INTERVAL 3 DAY, CURRENT_TIMESTAMP - INTERVAL 2 DAY, null, CURRENT_TIMESTAMP - INTERVAL 2 DAY),
+    (3, 4, 102, 'CANCELLED', CURRENT_TIMESTAMP - INTERVAL 6 DAY, null, CURRENT_TIMESTAMP - INTERVAL 5 DAY, CURRENT_TIMESTAMP - INTERVAL 5 DAY);
 
 alter table users auto_increment = 500;
 alter table courses auto_increment = 500;
