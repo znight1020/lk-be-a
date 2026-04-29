@@ -5,6 +5,11 @@ import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +44,7 @@ import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.model.CourseStatus;
 import leehs.course.global.web.RequestUserId;
 
+@Tag(name = "Course", description = "강의 API")
 @Validated
 @RestController
 @RequestMapping("/courses")
@@ -48,13 +54,13 @@ public class CourseApi {
     private final CourseCreator courseCreator;
     private final CourseFinder courseFinder;
     private final CourseModifier courseModifier;
-
     private final CourseEnrollmentFinder courseEnrollmentFinder;
 
+    @Operation(summary = "강의 등록")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CourseCreateResponse createCourse(
-        @RequestUserId Long userId,
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true) @RequestUserId Long userId,
         @Valid @RequestBody CourseCreateRequest request
     ) {
         CourseCreateCommand command = new CourseCreateCommand(userId,
@@ -67,8 +73,10 @@ public class CourseApi {
         return CourseCreateResponse.of(course);
     }
 
+    @Operation(summary = "강의 목록 조회")
     @GetMapping
     public List<CourseSummaryResponse> getCourses(
+        @Parameter(description = "강의 상태 필터")
         @RequestParam(required = false)
         @Pattern(regexp = "(?i)(|DRAFT|OPEN|CLOSED)", message = "status는 DRAFT, OPEN, CLOSED 중 하나여야 합니다")
         String status
@@ -82,17 +90,19 @@ public class CourseApi {
             .toList();
     }
 
+    @Operation(summary = "강의 상세 조회")
     @GetMapping("/{courseId}")
-    public CourseDetailResponse getCourse(@PathVariable Long courseId) {
+    public CourseDetailResponse getCourse(@Parameter(description = "강의 ID") @PathVariable Long courseId) {
         CourseDetailResult result = courseFinder.findDetail(courseId);
 
         return CourseDetailResponse.of(result);
     }
 
+    @Operation(summary = "강의별 수강생 목록 조회")
     @GetMapping("/{courseId}/enrollments")
     public List<CourseEnrollmentSummaryResponse> getCourseEnrollments(
-        @RequestUserId Long userId,
-        @PathVariable Long courseId
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true) @RequestUserId Long userId,
+        @Parameter(description = "강의 ID") @PathVariable Long courseId
     ) {
         CourseEnrollmentFindQuery query = new CourseEnrollmentFindQuery(userId, courseId);
 
@@ -103,8 +113,12 @@ public class CourseApi {
             .toList();
     }
 
+    @Operation(summary = "강의 모집 시작")
     @PatchMapping("/{courseId}/open")
-    public CourseStatusModifyResponse openCourse(@RequestUserId Long userId, @PathVariable Long courseId) {
+    public CourseStatusModifyResponse openCourse(
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true) @RequestUserId Long userId,
+        @Parameter(description = "강의 ID") @PathVariable Long courseId
+    ) {
         CourseStatusModifyCommand command = new CourseStatusModifyCommand(userId);
 
         Course course = courseModifier.open(courseId, command);
@@ -112,8 +126,12 @@ public class CourseApi {
         return CourseStatusModifyResponse.of(course);
     }
 
+    @Operation(summary = "강의 모집 마감")
     @PatchMapping("/{courseId}/close")
-    public CourseStatusModifyResponse closeCourse(@RequestUserId Long userId, @PathVariable Long courseId) {
+    public CourseStatusModifyResponse closeCourse(
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true) @RequestUserId Long userId,
+        @Parameter(description = "강의 ID") @PathVariable Long courseId
+    ) {
         CourseStatusModifyCommand command = new CourseStatusModifyCommand(userId);
 
         Course course = courseModifier.close(courseId, command);

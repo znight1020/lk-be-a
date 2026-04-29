@@ -18,6 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import leehs.course.core.enrollment.api.request.EnrollmentApplyRequest;
 import leehs.course.core.enrollment.api.response.EnrollmentApplyResponse;
 import leehs.course.core.enrollment.api.response.EnrollmentPageResponse;
@@ -32,6 +37,7 @@ import leehs.course.core.enrollment.application.query.EnrollmentFindQuery;
 import leehs.course.core.enrollment.domain.model.Enrollment;
 import leehs.course.global.web.RequestUserId;
 
+@Tag(name = "Enrollment", description = "수강 신청 API")
 @Validated
 @RestController
 @RequestMapping("/enrollments")
@@ -43,10 +49,13 @@ public class EnrollmentApi {
     private final EnrollmentModifier enrollmentModifier;
     private final EnrollmentWaitlistRegister enrollmentWaitlistRegister;
 
+    @Operation(summary = "수강 신청")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EnrollmentApplyResponse applyEnrollment(
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true)
         @RequestUserId Long userId,
+
         @Valid @RequestBody EnrollmentApplyRequest request
     ) {
         EnrollmentApplyCommand command = new EnrollmentApplyCommand(userId, request.courseId());
@@ -56,10 +65,11 @@ public class EnrollmentApi {
         return EnrollmentApplyResponse.of(enrollment);
     }
 
+    @Operation(summary = "대기열 등록")
     @PostMapping("/waitlist")
     @ResponseStatus(HttpStatus.CREATED)
     public EnrollmentApplyResponse registerWaitlist(
-        @RequestUserId Long userId,
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true) @RequestUserId Long userId,
         @Valid @RequestBody EnrollmentApplyRequest request
     ) {
         EnrollmentApplyCommand command = new EnrollmentApplyCommand(userId, request.courseId());
@@ -69,11 +79,12 @@ public class EnrollmentApi {
         return EnrollmentApplyResponse.of(enrollment);
     }
 
+    @Operation(summary = "내 수강 신청 목록 조회")
     @GetMapping("/me")
     public EnrollmentPageResponse getMyEnrollments(
-        @RequestUserId Long userId,
-        @RequestParam(defaultValue = "0") @Min(value = 0, message = "page는 0 이상이어야 합니다") int page,
-        @RequestParam(defaultValue = "4") @Min(value = 1, message = "size는 1 이상이어야 합니다") int size
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true) @RequestUserId Long userId,
+        @Parameter @RequestParam(defaultValue = "0") @Min(value = 0, message = "page는 0 이상이어야 합니다") int page,
+        @Parameter @RequestParam(defaultValue = "4") @Min(value = 1, message = "size는 1 이상이어야 합니다") int size
     ) {
         EnrollmentFindQuery query = new EnrollmentFindQuery(userId, page, size);
 
@@ -82,10 +93,11 @@ public class EnrollmentApi {
         return EnrollmentPageResponse.of(enrollments);
     }
 
+    @Operation(summary = "결제 확정 처리")
     @PatchMapping("/{enrollmentId}/confirm")
     public EnrollmentStatusModifyResponse confirmEnrollment(
-        @RequestUserId Long userId,
-        @PathVariable Long enrollmentId
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true) @RequestUserId Long userId,
+        @Parameter(description = "수강 신청 ID") @PathVariable Long enrollmentId
     ) {
         EnrollmentStatusModifyCommand command = new EnrollmentStatusModifyCommand(userId);
 
@@ -94,10 +106,11 @@ public class EnrollmentApi {
         return EnrollmentStatusModifyResponse.of(enrollment);
     }
 
+    @Operation(summary = "수강 취소")
     @PatchMapping("/{enrollmentId}/cancel")
     public EnrollmentStatusModifyResponse cancelEnrollment(
-        @RequestUserId Long userId,
-        @PathVariable Long enrollmentId
+        @Parameter(name = "X-User-Id", in = ParameterIn.HEADER, required = true) @RequestUserId Long userId,
+        @Parameter(description = "수강 신청 ID") @PathVariable Long enrollmentId
     ) {
         EnrollmentStatusModifyCommand command = new EnrollmentStatusModifyCommand(userId);
 
