@@ -24,6 +24,7 @@ import leehs.course.core.AbstractEntity;
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.enrollment.domain.exception.EnrollmentStatusAlreadyCancelledException;
 import leehs.course.core.enrollment.domain.exception.EnrollmentStatusNotPendingException;
+import leehs.course.core.enrollment.domain.exception.EnrollmentStatusNotWaitingException;
 import leehs.course.core.user.domain.model.User;
 
 @Getter
@@ -59,10 +60,18 @@ public class Enrollment extends AbstractEntity {
     private LocalDateTime updatedAt;
 
     public static Enrollment apply(Course course, User student) {
+        return create(course, student, EnrollmentStatus.PENDING);
+    }
+
+    public static Enrollment waitlist(Course course, User student) {
+        return create(course, student, EnrollmentStatus.WAITING);
+    }
+
+    private static Enrollment create(Course course, User student, EnrollmentStatus status) {
         Enrollment enrollment = new Enrollment();
         enrollment.course = requireNonNull(course, "course must not be null");
         enrollment.student = requireNonNull(student, "student must not be null");
-        enrollment.status = EnrollmentStatus.PENDING;
+        enrollment.status = status;
 
         return enrollment;
     }
@@ -73,6 +82,13 @@ public class Enrollment extends AbstractEntity {
 
         this.status = EnrollmentStatus.CONFIRMED;
         this.confirmedAt = LocalDateTime.now();
+    }
+
+    public void promoteToPending() {
+        if (!isWaiting())
+            throw new EnrollmentStatusNotWaitingException();
+
+        this.status = EnrollmentStatus.PENDING;
     }
 
     public void cancel() {
@@ -89,6 +105,10 @@ public class Enrollment extends AbstractEntity {
 
     public boolean isConfirmed() {
         return status == EnrollmentStatus.CONFIRMED;
+    }
+
+    public boolean isWaiting() {
+        return status == EnrollmentStatus.WAITING;
     }
 
     public boolean isCancelled() {

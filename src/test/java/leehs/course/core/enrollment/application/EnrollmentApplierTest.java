@@ -23,6 +23,7 @@ import leehs.course.core.enrollment.application.command.EnrollmentApplyCommand;
 import leehs.course.core.enrollment.domain.exception.EnrollmentAlreadyExistsException;
 import leehs.course.core.enrollment.domain.exception.EnrollmentCapacityExceededException;
 import leehs.course.core.enrollment.domain.exception.EnrollmentForbiddenException;
+import leehs.course.core.enrollment.domain.exception.EnrollmentWaitlistNotAvailableException;
 import leehs.course.core.enrollment.domain.model.Enrollment;
 import leehs.course.core.enrollment.domain.model.EnrollmentStatus;
 import leehs.course.core.enrollment.domain.repository.EnrollmentRepository;
@@ -37,6 +38,9 @@ class EnrollmentApplierTest {
 
     @Autowired
     EnrollmentApplier enrollmentApplier;
+
+    @Autowired
+    EnrollmentWaitlistRegister enrollmentWaitlistRegister;
 
     @Autowired
     EnrollmentRepository enrollmentRepository;
@@ -141,6 +145,42 @@ class EnrollmentApplierTest {
 
         assertThatThrownBy(() -> enrollmentApplier.apply(new EnrollmentApplyCommand(applicant.getId(), course.getId())))
             .isInstanceOf(EnrollmentCapacityExceededException.class);
+    }
+
+    @Test
+    @DisplayName("대기열 등록 - 성공, 정원 초과 강의")
+    void whenRegisterWaitlistWithFullCapacity_expectWaitingEnrollment() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User existingStudent = userRepository.save(UserFixture.createStudent("existing@test.com"));
+        User applicant = userRepository.save(UserFixture.createStudent("applicant@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator, 1));
+
+        enrollmentRepository.save(Enrollment.apply(course, existingStudent));
+
+        Enrollment waitlistEnrollment =
+            enrollmentWaitlistRegister.registerWaitlist(new EnrollmentApplyCommand(applicant.getId(), course.getId()));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Enrollment saved = enrollmentRepository.findById(waitlistEnrollment.getId()).orElseThrow();
+        assertThat(saved.getStatus()).isEqualTo(EnrollmentStatus.WAITING);
+        assertThat(saved.isActive()).isFalse();
+        assertThat(enrollmentRepository.countByCourseIdAndStatusIn(course.getId(), List.of(PENDING, CONFIRMED)))
+            .isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("대기열 등록 - 실패, 정원이 남아 있는 강의")
+    void whenRegisterWaitlistWithAvailableCapacity_expectEnrollmentWaitlistNotAvailableException() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User applicant = userRepository.save(UserFixture.createStudent("applicant@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator, 2));
+
+        assertThatThrownBy(() -> enrollmentWaitlistRegister.registerWaitlist(new EnrollmentApplyCommand(applicant.getId(), course.getId())))
+            .isInstanceOf(EnrollmentWaitlistNotAvailableException.class);
     }
 
     @Test

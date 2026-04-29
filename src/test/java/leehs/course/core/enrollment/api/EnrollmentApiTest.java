@@ -180,6 +180,63 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("대기열 등록 API - 성공, 정원 초과 강의")
+    void whenRegisterWaitlistWithFullCapacity_expectCreatedWaitlistResponse()
+        throws JsonProcessingException, UnsupportedEncodingException {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User existingStudent = userRepository.save(UserFixture.createStudent("existing@test.com"));
+        User applicant = userRepository.save(UserFixture.createStudent("applicant@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator, 1));
+
+        enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, existingStudent));
+
+        EnrollmentApplyRequest request = EnrollmentFixture.createEnrollmentApplyRequest(course.getId());
+        String json = objectMapper.writeValueAsString(request);
+
+        MvcTestResult result = mvcTester.post().uri("/enrollments/waitlist")
+            .header("X-User-Id", applicant.getId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json)
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.CREATED)
+            .bodyJson()
+            .hasPathSatisfying("$.courseId", value -> assertThat(value).asNumber().isEqualTo(course.getId().intValue()))
+            .hasPathSatisfying("$.status", value -> assertThat(value).isEqualTo("WAITING"));
+
+        EnrollmentApplyResponse response =
+            objectMapper.readValue(result.getResponse().getContentAsString(), EnrollmentApplyResponse.class);
+
+        Enrollment enrollment = enrollmentRepository.findById(response.enrollmentId()).orElseThrow();
+        assertThat(enrollment.isWaiting()).isTrue();
+    }
+
+    @Test
+    @DisplayName("대기열 등록 API - 실패, 정원이 남아 있는 강의")
+    void whenRegisterWaitlistWithAvailableCapacity_expectConflictResponse() throws JsonProcessingException {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User applicant = userRepository.save(UserFixture.createStudent("applicant@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator, 2));
+
+        EnrollmentApplyRequest request = EnrollmentFixture.createEnrollmentApplyRequest(course.getId());
+        String json = objectMapper.writeValueAsString(request);
+
+        MvcTestResult result = mvcTester.post().uri("/enrollments/waitlist")
+            .header("X-User-Id", applicant.getId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json)
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.CONFLICT)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_WAITLIST_NOT_AVAILABLE"));
+    }
+
+    @Test
     @DisplayName("수강 신청 API - 실패, 강의 id 누락")
     void whenApplyEnrollmentWithInvalidRequest_expectBadRequestResponse() throws JsonProcessingException {
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));

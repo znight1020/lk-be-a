@@ -145,6 +145,35 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 취소 - 성공, 활성 신청 취소 시 가장 오래된 대기자의 신청이 PENDING 상태로 변경")
+    void whenCancelActiveEnrollmentWithWaitingEnrollment_expectOldestWaitingEnrollmentPromotedToPending() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User activeStudent = userRepository.save(UserFixture.createStudent("active@test.com"));
+        User firstWaitingStudent = userRepository.save(UserFixture.createStudent("waiting1@test.com"));
+        User secondWaitingStudent = userRepository.save(UserFixture.createStudent("waiting2@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator, 1));
+
+        Enrollment activeEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, activeStudent));
+        Enrollment firstWaitingEnrollment = enrollmentRepository.save(EnrollmentFixture.createWaitlistEnrollment(course, firstWaitingStudent));
+        Enrollment secondWaitingEnrollment = enrollmentRepository.save(EnrollmentFixture.createWaitlistEnrollment(course, secondWaitingStudent));
+
+        EnrollmentStatusModifyCommand command = new EnrollmentStatusModifyCommand(activeStudent.getId());
+        enrollmentModifier.cancel(activeEnrollment.getId(), command);
+
+        em.flush();
+        em.clear();
+
+        Enrollment cancelled = enrollmentRepository.findById(activeEnrollment.getId()).orElseThrow();
+        Enrollment promoted = enrollmentRepository.findById(firstWaitingEnrollment.getId()).orElseThrow();
+        Enrollment remainingWaiting = enrollmentRepository.findById(secondWaitingEnrollment.getId()).orElseThrow();
+
+        assertThat(cancelled.getStatus()).isEqualTo(EnrollmentStatus.CANCELLED);
+        assertThat(promoted.getStatus()).isEqualTo(EnrollmentStatus.PENDING);
+        assertThat(remainingWaiting.getStatus()).isEqualTo(EnrollmentStatus.WAITING);
+    }
+
+    @Test
     @DisplayName("수강 취소 - 성공, CONFIRMED 상태")
     void whenCancelConfirmedEnrollmentWithOwnerStudent_expectCancelledEnrollment() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
@@ -155,6 +184,27 @@ class EnrollmentModifierTest {
 
         Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
         enrollment.confirm();
+
+        EnrollmentStatusModifyCommand command = new EnrollmentStatusModifyCommand(student.getId());
+        Enrollment cancelled = enrollmentModifier.cancel(enrollment.getId(), command);
+
+        em.flush();
+        em.clear();
+
+        Enrollment saved = enrollmentRepository.findById(cancelled.getId()).orElseThrow();
+        assertThat(saved.getStatus()).isEqualTo(EnrollmentStatus.CANCELLED);
+        assertThat(saved.getCancelledAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("수강 취소 - 성공, WAITING 상태")
+    void whenCancelWaitingEnrollmentWithOwnerStudent_expectCancelledEnrollment() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createWaitlistEnrollment(course, student));
 
         EnrollmentStatusModifyCommand command = new EnrollmentStatusModifyCommand(student.getId());
         Enrollment cancelled = enrollmentModifier.cancel(enrollment.getId(), command);

@@ -1,6 +1,7 @@
 package leehs.course.core.enrollment.domain.repository;
 
 import java.util.Collection;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,8 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
         Long studentId,
         Collection<EnrollmentStatus> statuses
     );
+
+    Optional<Enrollment> findFirstByCourseIdAndStatusOrderByIdAsc(Long courseId, EnrollmentStatus status);
 
     @EntityGraph(attributePaths = "course")
     Page<Enrollment> findAllByStudentId(Long studentId, Pageable pageable);

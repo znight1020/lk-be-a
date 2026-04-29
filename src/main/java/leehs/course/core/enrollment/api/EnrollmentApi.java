@@ -25,6 +25,7 @@ import leehs.course.core.enrollment.api.response.EnrollmentStatusModifyResponse;
 import leehs.course.core.enrollment.application.EnrollmentApplier;
 import leehs.course.core.enrollment.application.EnrollmentFinder;
 import leehs.course.core.enrollment.application.EnrollmentModifier;
+import leehs.course.core.enrollment.application.EnrollmentWaitlistRegister;
 import leehs.course.core.enrollment.application.command.EnrollmentApplyCommand;
 import leehs.course.core.enrollment.application.command.EnrollmentStatusModifyCommand;
 import leehs.course.core.enrollment.application.query.EnrollmentFindQuery;
@@ -40,6 +41,7 @@ public class EnrollmentApi {
     private final EnrollmentApplier enrollmentApplier;
     private final EnrollmentFinder enrollmentFinder;
     private final EnrollmentModifier enrollmentModifier;
+    private final EnrollmentWaitlistRegister enrollmentWaitlistRegister;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -50,6 +52,19 @@ public class EnrollmentApi {
         EnrollmentApplyCommand command = new EnrollmentApplyCommand(userId, request.courseId());
 
         Enrollment enrollment = enrollmentApplier.apply(command);
+
+        return EnrollmentApplyResponse.of(enrollment);
+    }
+
+    @PostMapping("/waitlist")
+    @ResponseStatus(HttpStatus.CREATED)
+    public EnrollmentApplyResponse registerWaitlist(
+        @RequestUserId Long userId,
+        @Valid @RequestBody EnrollmentApplyRequest request
+    ) {
+        EnrollmentApplyCommand command = new EnrollmentApplyCommand(userId, request.courseId());
+
+        Enrollment enrollment = enrollmentWaitlistRegister.registerWaitlist(command);
 
         return EnrollmentApplyResponse.of(enrollment);
     }

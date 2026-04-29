@@ -11,6 +11,10 @@ public class EnrollmentFixture {
         return Enrollment.apply(course, user);
     }
 
+    public static Enrollment createWaitlistEnrollment(Course course, User user) {
+        return Enrollment.waitlist(course, user);
+    }
+
     public static Enrollment createEnrollment() {
         return createEnrollment(CourseFixture.createCourse(), UserFixture.createStudent("student@test.com"));
     }

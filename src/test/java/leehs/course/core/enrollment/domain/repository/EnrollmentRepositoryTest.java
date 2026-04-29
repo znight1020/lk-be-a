@@ -2,6 +2,7 @@ package leehs.course.core.enrollment.domain.repository;
 
 import static leehs.course.core.enrollment.domain.model.EnrollmentStatus.CONFIRMED;
 import static leehs.course.core.enrollment.domain.model.EnrollmentStatus.PENDING;
+import static leehs.course.core.enrollment.domain.model.EnrollmentStatus.WAITING;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -117,6 +118,30 @@ class EnrollmentRepositoryTest {
         );
 
         assertThat(exists).isFalse();
+    }
+
+    @Test
+    @DisplayName("대기열 조회 - 성공, 가장 오래된 WAITING 반환")
+    void whenFindFirstByCourseIdAndStatusOrderByIdAsc_expectOldestWaitingEnrollmentReturned() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User firstStudent = userRepository.save(UserFixture.createStudent("first@test.com"));
+        User secondStudent = userRepository.save(UserFixture.createStudent("second@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment firstWaiting = enrollmentRepository.save(EnrollmentFixture.createWaitlistEnrollment(course, firstStudent));
+        enrollmentRepository.save(EnrollmentFixture.createWaitlistEnrollment(course, secondStudent));
+
+        em.flush();
+        em.clear();
+
+        Enrollment waitingEnrollment = enrollmentRepository.findFirstByCourseIdAndStatusOrderByIdAsc(
+            course.getId(),
+            WAITING
+        ).orElseThrow();
+
+        assertThat(waitingEnrollment.getId()).isEqualTo(firstWaiting.getId());
+        assertThat(waitingEnrollment.getStatus()).isEqualTo(WAITING);
     }
 
     @Test
