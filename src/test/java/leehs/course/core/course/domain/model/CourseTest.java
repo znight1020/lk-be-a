@@ -40,6 +40,15 @@ class CourseTest {
         // 시작일이 종료일과 같은 경우
         assertDoesNotThrow(() -> Course.create(createCreator("creator@test.com"), "title", "description", 10000, 30,
             LocalDate.of(2026, 5, 31), LocalDate.of(2026, 5, 31)));
+
+        // 시작일이 과거인 경우
+        assertThatThrownBy(() -> Course.create(createCreator("creator@test.com"), "title", "description", 10000, 30,
+            LocalDate.now().minusDays(1), LocalDate.now().plusDays(10)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("startDate must not be before today");
+
+        assertDoesNotThrow(() -> Course.create(createCreator("creator@test.com"), "title", "description", 10000, 30,
+            LocalDate.now(), LocalDate.now()));
     }
 
     @Test
@@ -54,7 +63,7 @@ class CourseTest {
     }
 
     @Test
-    @DisplayName("강의 오픈 - 성공, DRAFT -> OPEN")
+    @DisplayName("강의 시작 - 성공, DRAFT -> OPEN")
     void whenOpenDraftCourse_expectOpenStatus() {
         Course course = createCourse();
 
@@ -64,7 +73,7 @@ class CourseTest {
     }
 
     @Test
-    @DisplayName("강의 오픈 - 실패, DRAFT 상태 아님")
+    @DisplayName("강의 시작 - 실패, DRAFT 상태 아님")
     void whenOpenNonDraftCourse_expectCourseStatusNotDraftException() {
         Course course = createCourse();
         course.open();

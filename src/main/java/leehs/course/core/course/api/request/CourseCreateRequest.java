@@ -2,6 +2,7 @@ package leehs.course.core.course.api.request;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,6 +25,7 @@ public record CourseCreateRequest(
     Integer capacity,
 
     @NotNull(message = "강의 시작일은 필수입니다")
+    @FutureOrPresent(message = "강의 시작일은 오늘 이후여야 합니다")
     LocalDate startDate,
 
     @NotNull(message = "강의 종료일은 필수입니다")

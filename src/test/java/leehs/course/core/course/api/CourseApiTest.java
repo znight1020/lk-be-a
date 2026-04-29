@@ -3,6 +3,7 @@ package leehs.course.core.course.api;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDate;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,9 +25,12 @@ import leehs.course.core.course.api.response.CourseCreateResponse;
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.model.CourseStatus;
 import leehs.course.core.course.domain.repository.CourseRepository;
+import leehs.course.core.enrollment.domain.model.Enrollment;
+import leehs.course.core.enrollment.domain.repository.EnrollmentRepository;
 import leehs.course.core.user.application.UserRegister;
 import leehs.course.core.user.domain.model.User;
 import leehs.course.fixture.CourseFixture;
+import leehs.course.fixture.EnrollmentFixture;
 import leehs.course.fixture.UserFixture;
 
 @Transactional
@@ -38,6 +42,8 @@ class CourseApiTest {
     final MockMvcTester mvcTester;
 
     final CourseRepository courseRepository;
+
+    final EnrollmentRepository enrollmentRepository;
 
     final UserRegister userRegister;
 
@@ -320,5 +326,102 @@ class CourseApiTest {
             .hasStatus(HttpStatus.FORBIDDEN)
             .bodyJson()
             .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_NOT_OWNER"));
+    }
+
+    @Test
+    @DisplayName("강의별 수강 신청 목록 조회 API - 성공, 강의 주인")
+    void whenGetCourseEnrollmentsWithOwnerCreator_expectEnrollmentListResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
+        User firstStudent = userRegister.register(UserFixture.createStudentRegisterCommand("first@test.com"));
+        User secondStudent = userRegister.register(UserFixture.createStudentRegisterCommand("second@test.com"));
+        User pendingStudent = userRegister.register(UserFixture.createStudentRegisterCommand("pending@test.com"));
+        User cancelledStudent = userRegister.register(UserFixture.createStudentRegisterCommand("cancelled@test.com"));
+        User otherCourseStudent = userRegister.register(UserFixture.createStudentRegisterCommand("other@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+        Course otherCourse = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment firstEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, firstStudent));
+        firstEnrollment.confirm();
+        Enrollment secondEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, secondStudent));
+        secondEnrollment.confirm();
+
+        enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, pendingStudent));
+
+        Enrollment cancelledEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, cancelledStudent));
+        cancelledEnrollment.cancel();
+
+        Enrollment otherCourseEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(otherCourse, otherCourseStudent));
+        otherCourseEnrollment.confirm();
+
+        MvcTestResult result = mvcTester.get().uri("/courses/" + course.getId() + "/enrollments")
+            .header("X-User-Id", creator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.length()", value -> assertThat(value).asNumber().isEqualTo(2))
+            .hasPathSatisfying("$[0].enrollmentId", value -> assertThat(value).asNumber().isEqualTo(secondEnrollment.getId().intValue()))
+            .hasPathSatisfying("$[0].studentId", value -> assertThat(value).asNumber().isEqualTo(secondStudent.getId().intValue()))
+            .hasPathSatisfying("$[0].studentName", value -> assertThat(value).isEqualTo(secondStudent.getName()))
+            .hasPathSatisfying("$[0].studentEmail", value -> assertThat(value).isEqualTo(secondStudent.getEmail().address()))
+            .hasPathSatisfying("$[0].status", value -> assertThat(value).isEqualTo("CONFIRMED"))
+            .hasPathSatisfying("$[1].enrollmentId", value -> assertThat(value).asNumber().isEqualTo(firstEnrollment.getId().intValue()))
+            .hasPathSatisfying("$[1].studentId", value -> assertThat(value).asNumber().isEqualTo(firstStudent.getId().intValue()))
+            .hasPathSatisfying("$[1].studentName", value -> assertThat(value).isEqualTo(firstStudent.getName()))
+            .hasPathSatisfying("$[1].studentEmail", value -> assertThat(value).isEqualTo(firstStudent.getEmail().address()))
+            .hasPathSatisfying("$[1].status", value -> assertThat(value).isEqualTo("CONFIRMED"));
+    }
+
+    @Test
+    @DisplayName("강의별 수강 신청 목록 조회 API - 실패, 학생 권한")
+    void whenGetCourseEnrollmentsWithStudent_expectForbiddenResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
+        User student = userRegister.register(UserFixture.createStudentRegisterCommand("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        MvcTestResult result = mvcTester.get().uri("/courses/" + course.getId() + "/enrollments")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_MANAGEMENT_FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("강의별 수강 신청 목록 조회 API - 실패, 다른 강사의 강의")
+    void whenGetCourseEnrollmentsWithNonOwnerCreator_expectForbiddenResponse() {
+        User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("owner@test.com"));
+        User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(owner));
+
+        MvcTestResult result = mvcTester.get().uri("/courses/" + course.getId() + "/enrollments")
+            .header("X-User-Id", anotherCreator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_NOT_OWNER"));
+    }
+
+    @Test
+    @DisplayName("강의별 수강 신청 목록 조회 API - 실패, 존재하지 않는 강의")
+    void whenGetCourseEnrollmentsWithNonExistingCourse_expectNotFoundResponse() {
+        User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
+
+        MvcTestResult result = mvcTester.get().uri("/courses/999/enrollments")
+            .header("X-User-Id", creator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.NOT_FOUND)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("COURSE_NOT_FOUND"));
     }
 }

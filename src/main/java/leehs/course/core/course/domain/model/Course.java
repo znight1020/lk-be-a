@@ -81,6 +81,7 @@ public class Course extends AbstractEntity {
 
         Assert.notNull(startDate, "startDate must not be null");
         Assert.notNull(endDate, "endDate must not be null");
+        Assert.isTrue(!startDate.isBefore(LocalDate.now()), "startDate must not be before today");
         Assert.isTrue(!startDate.isAfter(endDate), "startDate must not be after endDate");
 
         Course course = new Course();
