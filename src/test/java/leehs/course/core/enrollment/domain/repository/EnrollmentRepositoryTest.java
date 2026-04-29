@@ -14,6 +14,9 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.repository.CourseRepository;
@@ -117,8 +120,8 @@ class EnrollmentRepositoryTest {
     }
 
     @Test
-    @DisplayName("내 수강 목록 조회 - 성공, 본인 신청만 최신순 반환")
-    void whenFindAllByStudentIdOrderByIdDesc_expectOwnEnrollmentsReturnedAndCourseLoaded() {
+    @DisplayName("내 수강 신청 목록 조회 - 성공, 본인 신청만 최신순 페이지 반환")
+    void whenFindAllByStudentIdWithPageable_expectOwnEnrollmentsReturnedAndCourseLoaded() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
         User anotherStudent = userRepository.save(UserFixture.createStudent("another@test.com"));
@@ -133,14 +136,19 @@ class EnrollmentRepositoryTest {
         em.flush();
         em.clear();
 
-        List<Enrollment> enrollments = enrollmentRepository.findAllByStudentIdOrderByIdDesc(student.getId());
+        Page<Enrollment> enrollments = enrollmentRepository.findAllByStudentId(
+            student.getId(),
+            PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "id"))
+        );
 
-        assertThat(enrollments).hasSize(2);
-        assertThat(enrollments).extracting(Enrollment::getId)
+        assertThat(enrollments.getContent()).hasSize(2);
+        assertThat(enrollments.getContent()).extracting(Enrollment::getId)
             .containsExactly(secondEnrollment.getId(), firstEnrollment.getId());
-        assertThat(enrollments).extracting(enrollment -> enrollment.getStudent().getId())
+        assertThat(enrollments.getContent()).extracting(enrollment -> enrollment.getStudent().getId())
             .containsOnly(student.getId());
-        assertThat(enrollments)
+        assertThat(enrollments.getTotalElements()).isEqualTo(2L);
+        assertThat(enrollments.getTotalPages()).isEqualTo(1);
+        assertThat(enrollments.getContent())
             .allSatisfy(enrollment -> assertThat(emf.getPersistenceUnitUtil().isLoaded(enrollment, "course")).isTrue());
     }
 }

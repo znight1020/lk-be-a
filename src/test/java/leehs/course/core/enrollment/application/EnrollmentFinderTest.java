@@ -4,13 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.util.List;
-
 import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.data.domain.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,12 +91,14 @@ class EnrollmentFinderTest {
         em.flush();
         em.clear();
 
-        List<Enrollment> enrollments = enrollmentFinder.findAll(new EnrollmentFindQuery(student.getId()));
-        assertThat(enrollments).hasSize(2);
-        assertThat(enrollments).extracting(Enrollment::getId)
+        Page<Enrollment> enrollments = enrollmentFinder.findAll(new EnrollmentFindQuery(student.getId(), 0, 20));
+        assertThat(enrollments.getContent()).hasSize(2);
+        assertThat(enrollments.getContent()).extracting(Enrollment::getId)
             .containsExactly(secondEnrollment.getId(), firstEnrollment.getId());
-        assertThat(enrollments).extracting(enrollment -> enrollment.getStudent().getId())
+        assertThat(enrollments.getContent()).extracting(enrollment -> enrollment.getStudent().getId())
             .containsOnly(student.getId());
+        assertThat(enrollments.getTotalElements()).isEqualTo(2L);
+        assertThat(enrollments.getTotalPages()).isEqualTo(1);
     }
 
     @Test
@@ -105,7 +106,7 @@ class EnrollmentFinderTest {
     void whenFindAllMineWithCreator_expectEnrollmentForbiddenException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
-        assertThatThrownBy(() -> enrollmentFinder.findAll(new EnrollmentFindQuery(creator.getId())))
+        assertThatThrownBy(() -> enrollmentFinder.findAll(new EnrollmentFindQuery(creator.getId(), 0, 4)))
             .isInstanceOf(EnrollmentForbiddenException.class);
     }
 }

@@ -1,6 +1,6 @@
 package leehs.course.core.enrollment.application;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
 
 import leehs.course.core.enrollment.application.query.EnrollmentFindQuery;
 import leehs.course.core.enrollment.domain.model.Enrollment;
@@ -21,8 +21,8 @@ public interface EnrollmentFinder {
     /**
      * 조회 조건에 맞는 수강 신청 목록 조회
      *
-     * @param query 내 수강 신청 목록을 조회할 사용자 ID를 담은 조건. 학생 권한 검증 후 해당 사용자의 신청만 조회
-     * @return 조회된 수강 신청 목록
+     * @param query 조회할 사용자 ID와 페이지 정보를 담은 조건
+     * @return 조회된 수강 신청 페이지
      */
-    List<Enrollment> findAll(EnrollmentFindQuery query);
+    Page<Enrollment> findAll(EnrollmentFindQuery query);
 }

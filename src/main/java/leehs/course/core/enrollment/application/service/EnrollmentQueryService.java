@@ -2,8 +2,9 @@ package leehs.course.core.enrollment.application.service;
 
 import static leehs.course.core.user.domain.model.UserRole.STUDENT;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,11 +35,13 @@ public class EnrollmentQueryService implements EnrollmentFinder {
     }
 
     @Override
-    public List<Enrollment> findAll(EnrollmentFindQuery query) {
+    public Page<Enrollment> findAll(EnrollmentFindQuery query) {
         User user = userFinder.find(query.userId());
         verifyStudentRole(user);
 
-        return enrollmentRepository.findAllByStudentIdOrderByIdDesc(query.userId());
+        PageRequest pageRequest = PageRequest.of(query.page(), query.size(), Sort.by(Sort.Direction.DESC, "id"));
+
+        return enrollmentRepository.findAllByStudentId(query.userId(), pageRequest);
     }
 
     private void verifyStudentRole(User user) {

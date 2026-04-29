@@ -224,14 +224,18 @@ class EnrollmentApiTest {
         assertThat(result)
             .hasStatus(HttpStatus.OK)
             .bodyJson()
-            .hasPathSatisfying("$.length()", value -> assertThat(value).asNumber().isEqualTo(2))
-            .hasPathSatisfying("$[0].enrollmentId", value -> assertThat(value).asNumber().isEqualTo(secondEnrollment.getId().intValue()))
-            .hasPathSatisfying("$[0].courseId", value -> assertThat(value).asNumber().isEqualTo(secondCourse.getId().intValue()))
-            .hasPathSatisfying("$[0].courseTitle", value -> assertThat(value).isEqualTo(secondCourse.getTitle()))
-            .hasPathSatisfying("$[0].status", value -> assertThat(value).isEqualTo("CONFIRMED"))
-            .hasPathSatisfying("$[1].enrollmentId", value -> assertThat(value).asNumber().isEqualTo(firstEnrollment.getId().intValue()))
-            .hasPathSatisfying("$[1].courseId", value -> assertThat(value).asNumber().isEqualTo(firstCourse.getId().intValue()))
-            .hasPathSatisfying("$[1].status", value -> assertThat(value).isEqualTo("PENDING"));
+            .hasPathSatisfying("$.totalElements", value -> assertThat(value).asNumber().isEqualTo(2))
+            .hasPathSatisfying("$.totalPages", value -> assertThat(value).asNumber().isEqualTo(1))
+            .hasPathSatisfying("$.hasNext", value -> assertThat(value).isEqualTo(false))
+            .hasPathSatisfying("$.hasPrevious", value -> assertThat(value).isEqualTo(false))
+            .hasPathSatisfying("$.content.length()", value -> assertThat(value).asNumber().isEqualTo(2))
+            .hasPathSatisfying("$.content[0].enrollmentId", value -> assertThat(value).asNumber().isEqualTo(secondEnrollment.getId().intValue()))
+            .hasPathSatisfying("$.content[0].courseId", value -> assertThat(value).asNumber().isEqualTo(secondCourse.getId().intValue()))
+            .hasPathSatisfying("$.content[0].courseTitle", value -> assertThat(value).isEqualTo(secondCourse.getTitle()))
+            .hasPathSatisfying("$.content[0].status", value -> assertThat(value).isEqualTo("CONFIRMED"))
+            .hasPathSatisfying("$.content[1].enrollmentId", value -> assertThat(value).asNumber().isEqualTo(firstEnrollment.getId().intValue()))
+            .hasPathSatisfying("$.content[1].courseId", value -> assertThat(value).asNumber().isEqualTo(firstCourse.getId().intValue()))
+            .hasPathSatisfying("$.content[1].status", value -> assertThat(value).isEqualTo("PENDING"));
     }
 
     @Test
