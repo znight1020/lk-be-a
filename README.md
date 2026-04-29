@@ -27,11 +27,6 @@ Etc: Docker Compose Support
 
 ## 3. 프로젝트 실행 / 테스트 실행 방법
 
-### [사전 준비]
-
-- Java 17
-- Docker (MySQL 컨테이너 실행을 위해 필요)
-
 ### [실행]
 
 샘플 데이터가 필요한 경우에만 `init` 프로필을 활성화해 실행합니다.
@@ -41,7 +36,9 @@ Etc: Docker Compose Support
 기존 데이터가 이미 있는 상태에서 `init` 프로필을 포함하여 실행하면 데이터가 삭제되고 샘플 데이터로 대체됩니다.
 
 **[애플리케이션 실행]**
-API 호출 편의성을 위해 swagger를 추가했습니다.
+
+사전 환경 구성 : Java 17, Docker
+API 호출 편의성을 위해 swagger를 추가했습니다. 애플리케이션 실행 후 다음 url 을 통해 사용할 수 있습니다.
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
 ```bash
@@ -55,7 +52,8 @@ gradlew.bat bootRun # default
 ```
 
 **[테스트 실행]**
-- 테스트는 H2 기반으로 실행되므로 별도의 MySQL 또는 Docker 실행 없이 수행할 수 있습니다.
+
+테스트는 H2 기반으로 실행되어 별도의 사전 구성 없이 수행할 수 있습니다.
 
 ```bash
 # 전체 테스트 실행
@@ -75,19 +73,17 @@ gradlew.bat test --tests "leehs.course.core.enrollment.application.EnrollmentApp
 
 ### [강의 관리]
 
-- 강의 관리의 필수 범위는 등록, 목록 조회, 상세 조회, 상태 변경으로 해석했고, 수정/삭제 기능은 구현 범위에서 제외했습니다.
-- 강의 상태 전이는 요구사항의 흐름을 따라 `DRAFT` -> `OPEN` -> `CLOSED`의 단방향 전이로 해석했고, `CLOSED`는 `OPEN` 상태에서만 변경할 수 있도록 구현했습니다.
-- 강의 상태와 정원 상태는 별개로 보았습니다. 따라서 강의가 `OPEN` 상태이더라도 활성 수강 신청 인원이 정원에 도달하면 신청은 거부되지만, 강의 상태를 자동으로 `CLOSED`로 변경하지는 않았습니다.
-- 강의별 수강생 목록 조회는 실제 수강생을 의미한다고 해석해, 수강 신청 상태가 `CONFIRMED`인 경우만 집계하고 조회하도록 구현했습니다.
+- 강의 상태 전이는 요구사항의 흐름을 따라 `DRAFT` -> `OPEN` -> `CLOSED`의 단방향 전이로 해석했습니다.
+- 강의 상태와 정원 상태는 별개로 보았습니다. 따라서 강의의 수강 신청 인원이 정원에 도달하는 경우 자동으로 `OPEN` 상태에서 `CLOSED` 상태로 변경하지 않았습니다.
+- 강의별 수강생 목록 조회는 수강 신청 상태가 `CONFIRMED`인 경우만 집계하고 조회하도록 구현했습니다.
 
 ### [수강 신청 관리]
 
-- 수강 신청 관리의 필수 범위는 신청, 결제 확정, 취소, 내 수강 신청 목록 조회로 해석했습니다.
-- 활성 수강 신청 인원은 `PENDING`, `CONFIRMED`만 포함하고 `CANCELLED`는 제외한다고 해석했습니다.
+- 정원을 차지하는 수강 신청 건은 `PENDING`, `CONFIRMED`만 포함하고 `CANCELLED`는 제외한다고 해석했습니다.
 - 취소된 신청이 있으면 동일 강의에 다시 신청할 수 있도록 구현했습니다.
-- 수강 취소는 `PENDING` 상태에서는 즉시 가능하고, `CONFIRMED` 상태에서는 결제 확정일 기준 7일 이내이면서 강의 시작일 전까지만 허용하도록 구현했습니다.
-- 정원 초과 시 수강 신청 자체는 그대로 거부하고, 사용자가 별도로 대기열 등록을 요청한 경우에만 `WAITING` 상태를 생성하도록 구현했습니다.
-- 대기열 등록은 실제로 정원이 가득 찬 경우에만 허용하고, `PENDING` 혹은 `CONFIRMED` 상태의 수강 신청이 취소되면 가장 오래된 대기열 등록을 `PENDING`으로 승급하도록 구현했습니다.
+- 수강 취소는 `PENDING`, `WAITING` 상태에서 가능하며, `CONFIRMED` 상태에서는 수강 확정일 기준 7일 이내, 강의 시작일 전인 경우에 허용하도록 구현했습니다.
+- 정원 초과 시 수강 신청이 거부되며, 사용자가 별도로 대기열 등록을 요청한 경우에만 `WAITING` 상태의 수강 신청 건을 생성하도록 구현했습니다.
+- 대기열 등록은 정원이 가득 찬 경우에만 허용하고, `PENDING` 혹은 `CONFIRMED` 상태의 수강 신청이 취소되면 가장 오래된 대기열 등록을 `PENDING` 상태로 변경되도록 구현했습니다.
 
 ## 5. 설계 결정과 이유
 
@@ -98,12 +94,14 @@ gradlew.bat test --tests "leehs.course.core.enrollment.application.EnrollmentApp
 - `application`: 유스케이스 조합, 역할/소유권 검증, 상태 전이, 정원 검증 등 비즈니스 흐름을 담당합니다.
 - `domain`: 엔티티, enum, repository 인터페이스, 도메인 예외 등 핵심 모델과 규칙을 담당합니다.
 
+- `global` 패키지는 공통 예외 처리, 인증/인가 관련 어노테이션, Swagger 설정이 정의되어있습니다.
+
 ### [테스트]
 
-- `domain` 테스트는 순수 단위 테스트로 작성해 상태 전이와 도메인 규칙 자체를 빠르게 검증하도록 했습니다.
-- `application` 테스트는 Spring Boot 통합 테스트로 작성해 서비스 계층의 비즈니스 규칙, 트랜잭션, Repository 협력을 검증하도록 했습니다.
-- `api` 테스트는 MockMvc 기반 테스트로 작성해 요청/응답 구조, 헤더 처리, 검증 오류, HTTP 상태 코드를 검증하도록 했습니다.
-- 테스트 메서드 네이밍은 `when ~ expect ~` 패턴으로 통일해 조건과 기대 결과가 이름에서 바로 드러나도록 했습니다.
+- `domain` 테스트는 순수 단위 테스트로 작성해 상태 전이와 도메인 규칙 자체를 빠르게 검증했습니다.
+- `application` 테스트는 Spring Boot 통합 테스트로 작성해 서비스 계층의 비즈니스 규칙, 트랜잭션, 데이터베이스와 협력을 검증했습니다.
+- `api` 테스트는 MockMvc 기반 테스트로 작성해 요청/응답 구조, 헤더 처리, 검증 오류, HTTP 상태 코드를 검증했습니다.
+- 테스트 메서드 네이밍은 `when (행위) expect (기대결과)` 패턴으로 통일했습니다.
 
 ### [비관적 락을 통한 동시성 제어]
 
@@ -112,15 +110,13 @@ gradlew.bat test --tests "leehs.course.core.enrollment.application.EnrollmentApp
 - 문제 상황 2
   - 수강 취소와 대기열 등록이 동시에 발생하면 빈 자리가 남았는데도 `WAITING` 상태가 생성되거나 남을 수 있습니다.
 - 해결 방법
-  - 강의별 정원과 대기열 상태를 하나의 공유 자원으로 보고, 수강 신청/대기열 등록/활성 신청 취소 시 강의 조회에 비관적 락을 적용했습니다.
-  - 정원 초과 방지는 데이터 정합성이 가장 중요한 규칙이므로, 애플리케이션에서의 재시도보다 DB 락으로 임계 구역을 직렬화하는 쪽을 선택했습니다.
+  - 강의별 정원과 대기열 상태를 하나의 공유 자원으로 보고, 수강 신청 등록/수강 신청 취소/대기열 등록 시 강의 조회에 비관적 락을 적용했습니다.
   - 별도 통합 테스트인 [EnrollmentApplierConcurrencyTest](src/test/java/leehs/course/core/enrollment/application/EnrollmentApplierConcurrencyTest.java)로 마지막 정원 신청 상황과 수강 취소/대기열 등록 동시 상황을 검증했습니다.
 
 ### [RFC 7807 기반 예외 처리]
 
 - 예외 응답은 Spring `ProblemDetail`을 사용해 RFC 7807 형식으로 통일했습니다.
-- 각 도메인 예외는 `ApplicationException`을 기반으로 에러 코드와 HTTP 상태 코드를 명시하고, `GlobalExceptionHandler`에서 이를 `ProblemDetail`로 변환해 일관된 응답 구조를 반환하도록 했습니다.
-- 이를 통해 HTTP 상태 코드, 에러 코드(`title`), 상세 메시지(`detail`)를 동일한 형식으로 내려주고, API 테스트에서도 예외 케이스를 명확하게 검증할 수 있도록 했습니다.
+- 각 도메인 예외는 에러 코드와 HTTP 상태 코드를 명시하고`ApplicationException`을 상속받아, `GlobalExceptionHandler`에서 이를 `ProblemDetail`로 변환해 일관된 응답 구조를 반환합니다.
 
 ## 6. 구현 사항
 
@@ -145,7 +141,6 @@ gradlew.bat test --tests "leehs.course.core.enrollment.application.EnrollmentApp
 - [x] 대기열(waitlist) 기능
 
 ### [미구현]
-
 
 ## 7. AI 활용 범위
 
