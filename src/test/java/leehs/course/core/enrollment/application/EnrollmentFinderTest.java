@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.repository.CourseRepository;
+import leehs.course.core.enrollment.application.query.EnrollmentFindQuery;
+import leehs.course.core.enrollment.domain.exception.EnrollmentForbiddenException;
 import leehs.course.core.enrollment.domain.exception.EnrollmentNotFoundException;
 import leehs.course.core.enrollment.domain.model.Enrollment;
 import leehs.course.core.enrollment.domain.repository.EnrollmentRepository;
@@ -66,5 +70,37 @@ class EnrollmentFinderTest {
 
         assertThatThrownBy(() -> enrollmentFinder.find(nonExistentId))
             .isInstanceOf(EnrollmentNotFoundException.class);
+    }
+
+    @Test
+    void whenFindAllMineWithStudent_expectOwnEnrollmentsReturnedInDescOrder() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+        User anotherStudent = userRepository.save(UserFixture.createStudent("another@test.com"));
+
+        Course firstCourse = courseRepository.save(CourseFixture.createOpenCourse(creator));
+        Course secondCourse = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment firstEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(firstCourse, student));
+        Enrollment secondEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(secondCourse, student));
+        enrollmentRepository.save(EnrollmentFixture.createEnrollment(secondCourse, anotherStudent));
+
+        em.flush();
+        em.clear();
+
+        List<Enrollment> enrollments = enrollmentFinder.findAll(new EnrollmentFindQuery(student.getId()));
+        assertThat(enrollments).hasSize(2);
+        assertThat(enrollments).extracting(Enrollment::getId)
+            .containsExactly(secondEnrollment.getId(), firstEnrollment.getId());
+        assertThat(enrollments).extracting(enrollment -> enrollment.getStudent().getId())
+            .containsOnly(student.getId());
+    }
+
+    @Test
+    void whenFindAllMineWithCreator_expectEnrollmentForbiddenException() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+
+        assertThatThrownBy(() -> enrollmentFinder.findAll(new EnrollmentFindQuery(creator.getId())))
+            .isInstanceOf(EnrollmentForbiddenException.class);
     }
 }

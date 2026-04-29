@@ -193,6 +193,61 @@ class EnrollmentApiTest {
     }
 
     @Test
+    void whenGetMyEnrollmentsWithStudent_expectEnrollmentListResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+        User anotherStudent = userRepository.save(UserFixture.createStudent("another@test.com"));
+
+        Course firstCourse = courseRepository.save(CourseFixture.createOpenCourse(creator));
+        Course secondCourse = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment firstEnrollment = enrollmentRepository.save(
+            EnrollmentFixture.createEnrollment(firstCourse, student));
+        Enrollment secondEnrollment = enrollmentRepository.save(
+            EnrollmentFixture.createEnrollment(secondCourse, student));
+        secondEnrollment.confirm();
+
+        Enrollment anotherEnrollment = enrollmentRepository.save(
+            EnrollmentFixture.createEnrollment(secondCourse, anotherStudent));
+        anotherEnrollment.confirm();
+        anotherEnrollment.cancel();
+
+        MvcTestResult result = mvcTester.get().uri("/enrollments/me")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.length()", value -> assertThat(value).asNumber().isEqualTo(2))
+            .hasPathSatisfying("$[0].enrollmentId",
+                value -> assertThat(value).asNumber().isEqualTo(secondEnrollment.getId().intValue()))
+            .hasPathSatisfying("$[0].courseId",
+                value -> assertThat(value).asNumber().isEqualTo(secondCourse.getId().intValue()))
+            .hasPathSatisfying("$[0].courseTitle", value -> assertThat(value).isEqualTo(secondCourse.getTitle()))
+            .hasPathSatisfying("$[0].status", value -> assertThat(value).isEqualTo("CONFIRMED"))
+            .hasPathSatisfying("$[1].enrollmentId",
+                value -> assertThat(value).asNumber().isEqualTo(firstEnrollment.getId().intValue()))
+            .hasPathSatisfying("$[1].courseId",
+                value -> assertThat(value).asNumber().isEqualTo(firstCourse.getId().intValue()))
+            .hasPathSatisfying("$[1].status", value -> assertThat(value).isEqualTo("PENDING"));
+    }
+
+    @Test
+    void whenGetMyEnrollmentsWithCreator_expectForbiddenResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+
+        MvcTestResult result = mvcTester.get().uri("/enrollments/me")
+            .header("X-User-Id", creator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_FORBIDDEN"));
+    }
+
+    @Test
     void whenConfirmEnrollmentWithOwnerStudent_expectConfirmedEnrollmentResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -346,7 +401,7 @@ class EnrollmentApiTest {
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
 
         Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
-        ReflectionTestUtils.setField(course, "startDate", LocalDate.now());
+        ReflectionTestUtils.setField(course, "startDate", LocalDate.now().plusDays(1));
 
         Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
         enrollment.confirm();
