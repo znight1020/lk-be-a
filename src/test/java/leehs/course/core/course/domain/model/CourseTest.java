@@ -89,6 +89,8 @@ class CourseTest {
     @Test
     void whenCloseClosedCourse_expectCourseStatusNotOpenException() {
         Course course = createCourse();
+        course.open();
+        course.close();
 
         assertThatThrownBy(course::close)
             .isInstanceOf(CourseStatusNotOpenException.class);

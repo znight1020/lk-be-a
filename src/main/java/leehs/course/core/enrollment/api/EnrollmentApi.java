@@ -55,4 +55,16 @@ public class EnrollmentApi {
 
         return EnrollmentStatusModifyResponse.of(enrollment);
     }
+
+    @PatchMapping("/{enrollmentId}/cancel")
+    public EnrollmentStatusModifyResponse cancelEnrollment(
+        @RequestUserId Long userId,
+        @PathVariable Long enrollmentId
+    ) {
+        EnrollmentStatusModifyCommand command = new EnrollmentStatusModifyCommand(userId);
+
+        Enrollment enrollment = enrollmentModifier.cancel(enrollmentId, command);
+
+        return EnrollmentStatusModifyResponse.of(enrollment);
+    }
 }

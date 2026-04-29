@@ -3,6 +3,8 @@ package leehs.course.core.enrollment.api;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 
@@ -10,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -285,5 +288,174 @@ class EnrollmentApiTest {
             .hasStatus(HttpStatus.BAD_REQUEST)
             .bodyJson()
             .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_STATUS_NOT_PENDING"));
+    }
+
+    @Test
+    void whenCancelPendingEnrollmentWithOwnerStudent_expectCancelledEnrollmentResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/cancel")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.enrollmentId", value -> assertThat(value).asNumber().isEqualTo(enrollment.getId().intValue()))
+            .hasPathSatisfying("$.courseId", value -> assertThat(value).asNumber().isEqualTo(course.getId().intValue()))
+            .hasPathSatisfying("$.status", value -> assertThat(value).isEqualTo("CANCELLED"));
+
+        Enrollment cancelled = enrollmentRepository.findById(enrollment.getId()).orElseThrow();
+        assertThat(cancelled.isCancelled()).isTrue();
+        assertThat(cancelled.getCancelledAt()).isNotNull();
+    }
+
+    @Test
+    void whenCancelConfirmedEnrollmentWithOwnerStudent_expectCancelledEnrollmentResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+        ReflectionTestUtils.setField(course, "startDate", LocalDate.now().plusDays(1));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+        enrollment.confirm();
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/cancel")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.status", value -> assertThat(value).isEqualTo("CANCELLED"));
+
+        Enrollment cancelled = enrollmentRepository.findById(enrollment.getId()).orElseThrow();
+        assertThat(cancelled.isCancelled()).isTrue();
+        assertThat(cancelled.getCancelledAt()).isNotNull();
+    }
+
+    @Test
+    void whenCancelConfirmedEnrollmentAfterConfirmedWindow_expectBadRequestResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+        ReflectionTestUtils.setField(course, "startDate", LocalDate.now());
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+        enrollment.confirm();
+        ReflectionTestUtils.setField(enrollment, "confirmedAt", LocalDateTime.now().minusDays(8));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/cancel")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.CONFLICT)
+            .bodyJson()
+            .hasPathSatisfying("$.title",
+                value -> assertThat(value).isEqualTo("ENROLLMENT_CANCELLATION_PERIOD_EXPIRED"));
+    }
+
+    @Test
+    void whenCancelConfirmedEnrollmentOnCourseStartDate_expectBadRequestResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+        ReflectionTestUtils.setField(course, "startDate", LocalDate.now());
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+        enrollment.confirm();
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/cancel")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.CONFLICT)
+            .bodyJson()
+            .hasPathSatisfying("$.title",
+                value -> assertThat(value).isEqualTo("ENROLLMENT_CANCELLATION_PERIOD_EXPIRED"));
+    }
+
+    @Test
+    void whenCancelEnrollmentWithCreator_expectForbiddenResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/cancel")
+            .header("X-User-Id", creator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_FORBIDDEN"));
+    }
+
+    @Test
+    void whenCancelEnrollmentWithNonOwnerStudent_expectForbiddenResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User ownerStudent = userRepository.save(UserFixture.createStudent("owner@test.com"));
+        User anotherStudent = userRepository.save(UserFixture.createStudent("another@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, ownerStudent));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/cancel")
+            .header("X-User-Id", anotherStudent.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_NOT_OWNER"));
+    }
+
+    @Test
+    void whenCancelEnrollmentThatDoesNotExist_expectNotFoundResponse() {
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/999/cancel")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.NOT_FOUND)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_NOT_FOUND"));
+    }
+
+    @Test
+    void whenCancelAlreadyCancelledEnrollment_expectBadRequestResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+        enrollment.confirm();
+        enrollment.cancel();
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/cancel")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.BAD_REQUEST)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_STATUS_ALREADY_CANCELLED"));
     }
 }

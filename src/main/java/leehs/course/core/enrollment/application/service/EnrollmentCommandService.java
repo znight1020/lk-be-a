@@ -4,6 +4,8 @@ import static leehs.course.core.enrollment.domain.model.EnrollmentStatus.CONFIRM
 import static leehs.course.core.enrollment.domain.model.EnrollmentStatus.PENDING;
 import static leehs.course.core.user.domain.model.UserRole.STUDENT;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,6 +23,7 @@ import leehs.course.core.enrollment.application.EnrollmentModifier;
 import leehs.course.core.enrollment.application.command.EnrollmentApplyCommand;
 import leehs.course.core.enrollment.application.command.EnrollmentStatusModifyCommand;
 import leehs.course.core.enrollment.domain.exception.EnrollmentAlreadyExistsException;
+import leehs.course.core.enrollment.domain.exception.EnrollmentCancellationPeriodExpiredException;
 import leehs.course.core.enrollment.domain.exception.EnrollmentCapacityExceededException;
 import leehs.course.core.enrollment.domain.exception.EnrollmentForbiddenException;
 import leehs.course.core.enrollment.domain.exception.EnrollmentNotOwnerException;
@@ -34,6 +37,8 @@ import leehs.course.core.user.domain.model.User;
 @Transactional
 @RequiredArgsConstructor
 public class EnrollmentCommandService implements EnrollmentApplier, EnrollmentModifier {
+
+    private static final int CANCELLATION_PERIOD_DAYS = 7;
 
     private final EnrollmentRepository enrollmentRepository;
     private final EnrollmentFinder enrollmentFinder;
@@ -74,6 +79,22 @@ public class EnrollmentCommandService implements EnrollmentApplier, EnrollmentMo
         return enrollment;
     }
 
+    @Override
+    public Enrollment cancel(Long enrollmentId, EnrollmentStatusModifyCommand command) {
+        User requestUser = userFinder.find(command.requestUserId());
+        verifyStudentRole(requestUser);
+
+        Enrollment enrollment = enrollmentFinder.find(enrollmentId);
+        verifyEnrollmentOwner(enrollment, requestUser.getId());
+
+        if (enrollment.isConfirmed())
+            verifyCancellationPeriod(enrollment);
+
+        enrollment.cancel();
+
+        return enrollment;
+    }
+
     private void verifyStudentRole(User requestUser) {
         if (requestUser.getRole() != STUDENT)
             throw new EnrollmentForbiddenException();
@@ -99,5 +120,17 @@ public class EnrollmentCommandService implements EnrollmentApplier, EnrollmentMo
     private void verifyEnrollmentOwner(Enrollment enrollment, Long requestUserId) {
         if (!Objects.equals(enrollment.getStudent().getId(), requestUserId))
             throw new EnrollmentNotOwnerException();
+    }
+
+    private static void verifyCancellationPeriod(Enrollment enrollment) {
+        LocalDateTime confirmedAt = enrollment.getConfirmedAt();
+        LocalDate courseStartDate = enrollment.getCourse().getStartDate();
+
+        LocalDateTime now = LocalDateTime.now();
+        boolean withinConfirmedAt = !now.isAfter(confirmedAt.plusDays(CANCELLATION_PERIOD_DAYS));
+        boolean beforeCourseStartDate = now.toLocalDate().isBefore(courseStartDate);
+
+        if (!withinConfirmedAt || !beforeCourseStartDate)
+            throw new EnrollmentCancellationPeriodExpiredException();
     }
 }

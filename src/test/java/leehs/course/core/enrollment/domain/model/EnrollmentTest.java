@@ -55,6 +55,7 @@ class EnrollmentTest {
             .isInstanceOf(EnrollmentStatusNotPendingException.class);
 
         Enrollment cancelledEnrollment = createEnrollment();
+        cancelledEnrollment.confirm();
         cancelledEnrollment.cancel();
 
         assertThatThrownBy(cancelledEnrollment::confirm)

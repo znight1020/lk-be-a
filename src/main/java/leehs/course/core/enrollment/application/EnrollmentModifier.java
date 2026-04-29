@@ -6,4 +6,6 @@ import leehs.course.core.enrollment.domain.model.Enrollment;
 public interface EnrollmentModifier {
 
     Enrollment confirm(Long enrollmentId, EnrollmentStatusModifyCommand command);
+
+    Enrollment cancel(Long enrollmentId, EnrollmentStatusModifyCommand command);
 }
