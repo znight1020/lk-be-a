@@ -12,16 +12,14 @@ import jakarta.persistence.EntityManagerFactory;
 
 import org.junit.jupiter.api.Test;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import leehs.course.core.course.domain.model.Course;
 import leehs.course.core.course.domain.model.CourseStatus;
 import leehs.course.core.course.domain.repository.projection.CourseDetailProjection;
 import leehs.course.core.enrollment.domain.model.Enrollment;
-import leehs.course.core.enrollment.domain.model.EnrollmentStatus;
+import leehs.course.core.enrollment.domain.repository.EnrollmentRepository;
 import leehs.course.core.user.domain.model.User;
 import leehs.course.core.user.domain.repository.UserRepository;
 import leehs.course.fixture.CourseFixture;
@@ -37,10 +35,13 @@ class CourseRepositoryTest {
     UserRepository userRepository;
 
     @Autowired
-    EntityManager entityManager;
+    EnrollmentRepository enrollmentRepository;
 
     @Autowired
-    EntityManagerFactory entityManagerFactory;
+    EntityManager em;
+
+    @Autowired
+    EntityManagerFactory emf;
 
     @Test
     void whenFindAllByOrderByIdDesc_expectCreatorLoaded() {
@@ -49,13 +50,13 @@ class CourseRepositoryTest {
         courseRepository.save(CourseFixture.createCourse(creator));
         courseRepository.save(CourseFixture.createCourse(creator));
 
-        entityManager.flush();
-        entityManager.clear();
+        em.flush();
+        em.clear();
 
         List<Course> courses = courseRepository.findAllByOrderByIdDesc();
         assertThat(courses).isNotEmpty();
         assertThat(courses)
-            .allSatisfy(course -> assertThat(entityManagerFactory.getPersistenceUnitUtil()
+            .allSatisfy(course -> assertThat(emf.getPersistenceUnitUtil()
                 .isLoaded(course, "creator")).isTrue());
     }
 
@@ -67,14 +68,14 @@ class CourseRepositoryTest {
         Course openCourse = courseRepository.save(CourseFixture.createCourse(creator));
         openCourse.open();
 
-        entityManager.flush();
-        entityManager.clear();
+        em.flush();
+        em.clear();
 
         List<Course> courses = courseRepository.findAllByStatusOrderByIdDesc(CourseStatus.OPEN);
         assertThat(courses).hasSize(1);
         assertThat(courses.get(0).getId()).isEqualTo(openCourse.getId());
         assertThat(courses.get(0).getStatus()).isEqualTo(CourseStatus.OPEN);
-        assertThat(entityManagerFactory.getPersistenceUnitUtil().isLoaded(courses.get(0), "creator")).isTrue();
+        assertThat(emf.getPersistenceUnitUtil().isLoaded(courses.get(0), "creator")).isTrue();
         assertThat(courses).extracting(Course::getId).doesNotContain(draftCourse.getId());
     }
 
@@ -83,8 +84,8 @@ class CourseRepositoryTest {
         User creator = userRepository.save(UserFixture.createCreator("creator-detail@test.com"));
         Course course = courseRepository.save(CourseFixture.createCourse(creator));
 
-        entityManager.flush();
-        entityManager.clear();
+        em.flush();
+        em.clear();
 
         CourseDetailProjection projection = courseRepository.findDetailById(
             course.getId(),
@@ -113,26 +114,23 @@ class CourseRepositoryTest {
 
         Course course = courseRepository.save(CourseFixture.createCourse(creator));
 
-        // TODO : EnrollmentRepository 구현 시 삭제
-        entityManager.persist(createEnrollment(course, pendingStudent, PENDING));
-        entityManager.persist(createEnrollment(course, confirmedStudent, CONFIRMED));
-        entityManager.persist(createEnrollment(course, cancelledStudent, CANCELLED));
+        Enrollment pendingEnrollment = enrollmentRepository.save(Enrollment.apply(course, pendingStudent));
 
-        entityManager.flush();
-        entityManager.clear();
+        Enrollment confirmedEnrollment = enrollmentRepository.save(Enrollment.apply(course, confirmedStudent));
+        confirmedEnrollment.confirm();
+
+        Enrollment cancelledEnrollment = enrollmentRepository.save(Enrollment.apply(course, cancelledStudent));
+        cancelledEnrollment.cancel();
+
+        em.flush();
+        em.clear();
 
         CourseDetailProjection projection = courseRepository.findDetailById(course.getId(), List.of(PENDING, CONFIRMED))
             .orElseThrow();
 
         assertThat(projection.getCurrentEnrollmentCount()).isEqualTo(2L);
-    }
-
-    // TODO : Enrollment 구현 시 삭제
-    private Enrollment createEnrollment(Course course, User student, EnrollmentStatus status) {
-        Enrollment enrollment = BeanUtils.instantiateClass(Enrollment.class);
-        ReflectionTestUtils.setField(enrollment, "course", course);
-        ReflectionTestUtils.setField(enrollment, "student", student);
-        ReflectionTestUtils.setField(enrollment, "status", status);
-        return enrollment;
+        assertThat(pendingEnrollment.getStatus()).isEqualTo(PENDING);
+        assertThat(confirmedEnrollment.getStatus()).isEqualTo(CONFIRMED);
+        assertThat(cancelledEnrollment.getStatus()).isEqualTo(CANCELLED);
     }
 }

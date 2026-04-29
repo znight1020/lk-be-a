@@ -188,4 +188,102 @@ class EnrollmentApiTest {
             .bodyJson()
             .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("VALIDATION_ERROR"));
     }
+
+    @Test
+    void whenConfirmEnrollmentWithOwnerStudent_expectConfirmedEnrollmentResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/confirm")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.OK)
+            .bodyJson()
+            .hasPathSatisfying("$.enrollmentId", value -> assertThat(value).asNumber().isEqualTo(enrollment.getId().intValue()))
+            .hasPathSatisfying("$.courseId", value -> assertThat(value).asNumber().isEqualTo(course.getId().intValue()))
+            .hasPathSatisfying("$.status", value -> assertThat(value).isEqualTo("CONFIRMED"));
+
+        Enrollment confirmed = enrollmentRepository.findById(enrollment.getId()).orElseThrow();
+        assertThat(confirmed.isConfirmed()).isTrue();
+        assertThat(confirmed.getConfirmedAt()).isNotNull();
+    }
+
+    @Test
+    void whenConfirmEnrollmentWithCreator_expectForbiddenResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/confirm")
+            .header("X-User-Id", creator.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_FORBIDDEN"));
+    }
+
+    @Test
+    void whenConfirmEnrollmentWithNonOwnerStudent_expectForbiddenResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User ownerStudent = userRepository.save(UserFixture.createStudent("owner@test.com"));
+        User anotherStudent = userRepository.save(UserFixture.createStudent("another@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, ownerStudent));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/confirm")
+            .header("X-User-Id", anotherStudent.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.FORBIDDEN)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_NOT_OWNER"));
+    }
+
+    @Test
+    void whenConfirmEnrollmentThatDoesNotExist_expectNotFoundResponse() {
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/999/confirm")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.NOT_FOUND)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_NOT_FOUND"));
+    }
+
+    @Test
+    void whenConfirmAlreadyConfirmedEnrollment_expectBadRequestResponse() {
+        User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
+        User student = userRepository.save(UserFixture.createStudent("student@test.com"));
+
+        Course course = courseRepository.save(CourseFixture.createOpenCourse(creator));
+
+        Enrollment enrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(course, student));
+        enrollment.confirm();
+
+        MvcTestResult result = mvcTester.patch().uri("/enrollments/" + enrollment.getId() + "/confirm")
+            .header("X-User-Id", student.getId())
+            .exchange();
+
+        assertThat(result)
+            .hasStatus(HttpStatus.BAD_REQUEST)
+            .bodyJson()
+            .hasPathSatisfying("$.title", value -> assertThat(value).isEqualTo("ENROLLMENT_STATUS_NOT_PENDING"));
+    }
 }
