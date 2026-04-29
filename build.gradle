@@ -44,4 +44,15 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+
+    afterSuite { descriptor, result ->
+        if (descriptor.parent == null) {
+            println ''
+            println 'Test summary:'
+            println "  Total   : ${result.testCount}"
+            println "  Success : ${result.successfulTestCount}"
+            println "  Failed  : ${result.failedTestCount}"
+            println "  Skipped : ${result.skippedTestCount}"
+        }
+    }
 }

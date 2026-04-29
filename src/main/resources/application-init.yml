@@ -1,0 +1,9 @@
+spring:
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      data-locations: classpath:database/init_data.sql
+
+  jpa:
+    defer-datasource-initialization: true
