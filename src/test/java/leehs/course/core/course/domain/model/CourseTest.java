@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import java.time.LocalDate;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import leehs.course.core.course.domain.exception.CourseStatusNotDraftException;
@@ -16,6 +17,7 @@ import leehs.course.core.course.domain.exception.CourseStatusNotOpenException;
 class CourseTest {
 
     @Test
+    @DisplayName("강의 생성 - 실패, 잘못된 입력값")
     void whenCreateCourseWithInvalidArgument_expectIllegalArgumentException() {
         // 가격이 음수인 경우
         assertThatThrownBy(() -> Course.create(createCreator("creator@test.com"), "title", "description", -1, 30,
@@ -41,6 +43,7 @@ class CourseTest {
     }
 
     @Test
+    @DisplayName("강의 생성 - 성공, 기본 상태는 DRAFT")
     void whenCreateValidCourse_expectDraftStatus() {
         Course course = createCourse();
 
@@ -51,6 +54,7 @@ class CourseTest {
     }
 
     @Test
+    @DisplayName("강의 오픈 - 성공, DRAFT -> OPEN")
     void whenOpenDraftCourse_expectOpenStatus() {
         Course course = createCourse();
 
@@ -60,6 +64,7 @@ class CourseTest {
     }
 
     @Test
+    @DisplayName("강의 오픈 - 실패, DRAFT 상태 아님")
     void whenOpenNonDraftCourse_expectCourseStatusNotDraftException() {
         Course course = createCourse();
         course.open();
@@ -69,6 +74,7 @@ class CourseTest {
     }
 
     @Test
+    @DisplayName("강의 마감 - 실패, OPEN 상태 아님")
     void whenCloseDraftCourse_expectCourseStatusNotOpenException() {
         Course course = createCourse();
 
@@ -77,6 +83,7 @@ class CourseTest {
     }
 
     @Test
+    @DisplayName("강의 마감 - 성공, OPEN -> CLOSED")
     void whenCloseOpenCourse_expectClosedStatus() {
         Course course = createCourse();
         course.open();
@@ -87,6 +94,7 @@ class CourseTest {
     }
 
     @Test
+    @DisplayName("강의 마감 - 실패, 이미 CLOSED")
     void whenCloseClosedCourse_expectCourseStatusNotOpenException() {
         Course course = createCourse();
         course.open();

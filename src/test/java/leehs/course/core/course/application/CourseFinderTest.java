@@ -9,6 +9,7 @@ import java.util.List;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,7 @@ class CourseFinderTest {
     EntityManager em;
 
     @Test
+    @DisplayName("강의 ID 기반 조회 - 성공")
     void whenFindExistingCourseById_expectCourseReturned() {
         User creator = UserFixture.createCreator("creator@test.com");
         userRepository.save(creator);
@@ -57,6 +59,7 @@ class CourseFinderTest {
     }
 
     @Test
+    @DisplayName("강의 ID 기반 조회 - 실패, 존재하지 않는 강의")
     void whenFindNonExistingCourseById_expectCourseNotFoundException() {
         Long nonExistentId = 999L;
 
@@ -65,6 +68,7 @@ class CourseFinderTest {
     }
 
     @Test
+    @DisplayName("강의 목록 조회 - 성공, 상태 조건 없음")
     void whenFindAllWithNullStatus_expectAllCoursesReturnedInDescOrder() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -81,6 +85,7 @@ class CourseFinderTest {
     }
 
     @Test
+    @DisplayName("강의 목록 조회 - 성공, 상태 필터 적용")
     void whenFindAllWithStatus_expectOnlyMatchingCoursesReturned() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -99,6 +104,7 @@ class CourseFinderTest {
     }
 
     @Test
+    @DisplayName("강의 상세 조회 - 성공")
     void whenFindDetailWithExistingCourse_expectCourseDetailReturned() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -121,6 +127,7 @@ class CourseFinderTest {
     }
 
     @Test
+    @DisplayName("강의 상세 조회 - 실패, 존재하지 않는 강의")
     void whenFindDetailWithNonExistingCourse_expectCourseNotFoundException() {
         Long nonExistentId = 999L;
 

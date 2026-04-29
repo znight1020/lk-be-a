@@ -3,6 +3,7 @@ package leehs.course.core.course.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ class CourseCreatorTest {
     UserRepository userRepository;
 
     @Test
+    @DisplayName("강의 생성 - 성공")
     void whenCreateCourseWithCreator_expectCreatedCourse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -44,6 +46,7 @@ class CourseCreatorTest {
     }
 
     @Test
+    @DisplayName("강의 생성 - 실패, 학생 권한")
     void whenCreateCourseWithStudent_expectCourseManagementForbiddenException() {
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
 
@@ -54,6 +57,7 @@ class CourseCreatorTest {
     }
 
     @Test
+    @DisplayName("강의 생성 - 실패, 존재하지 않는 사용자")
     void whenCreateCourseWithNonExistentUser_expectIllegalArgumentException() {
         Long nonExistentUserId = 999L;
 

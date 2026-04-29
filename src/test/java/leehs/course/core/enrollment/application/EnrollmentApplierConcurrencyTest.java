@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,7 @@ class EnrollmentApplierConcurrencyTest {
      * 최종 active enrollment 수는 정원 2명을 넘지 않음
      */
     @Test
+    @DisplayName("수강 신청 동시성 - 성공, 마지막 자리는 한 명만 신청 성공")
     void whenApplyEnrollmentConcurrentlyToLastSeat_expectOnlyOneEnrollmentCreated() throws InterruptedException {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User existingStudent = userRepository.save(UserFixture.createStudent("existing@test.com"));

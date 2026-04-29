@@ -3,6 +3,7 @@ package leehs.course.core.user.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ class UserRegisterTest {
     UserRegister userRegister;
 
     @Test
+    @DisplayName("사용자 등록 - 성공")
     void whenRegisterUser_expectUserCreated() {
         User student = userRegister.register(UserFixture.createStudentRegisterCommand("student@test.com"));
         assertThat(student.getId()).isNotNull();
@@ -35,6 +37,7 @@ class UserRegisterTest {
     }
 
     @Test
+    @DisplayName("사용자 등록 - 실패, 중복 이메일")
     void whenRegisterUserWithDuplicateEmail_expectEmailDuplicatedException() {
         var duplicatedEmailCommand = UserFixture.createStudentRegisterCommand("test@test.com");
         userRegister.register(duplicatedEmailCommand);
@@ -44,6 +47,7 @@ class UserRegisterTest {
     }
 
     @Test
+    @DisplayName("사용자 등록 - 실패, 유효하지않은 역할")
     void whenRegisterUserWithInvalidRole_expectUserRoleInvalidException() {
         var invalidRoleCommand = new UserRegisterCommand("test@test.com", "수강생", "INVALID");
 

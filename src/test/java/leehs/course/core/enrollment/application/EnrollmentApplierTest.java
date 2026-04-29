@@ -9,6 +9,7 @@ import java.util.List;
 
 import jakarta.persistence.EntityManager;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,7 @@ class EnrollmentApplierTest {
     EntityManager entityManager;
 
     @Test
+    @DisplayName("수강 신청 - 성공, 학생 및 모집 상태의 강의")
     void whenApplyEnrollmentWithStudentAndOpenCourse_expectPendingEnrollment() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -69,6 +71,7 @@ class EnrollmentApplierTest {
     }
 
     @Test
+    @DisplayName("수강 신청 - 실패, 강사 권한")
     void whenApplyEnrollmentWithCreator_expectEnrollmentForbiddenException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -79,6 +82,7 @@ class EnrollmentApplierTest {
     }
 
     @Test
+    @DisplayName("수강 신청 - 실패, 모집 상태 아님")
     void whenApplyEnrollmentWithDraftCourse_expectCourseStatusNotOpenException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -90,6 +94,7 @@ class EnrollmentApplierTest {
     }
 
     @Test
+    @DisplayName("수강 신청 - 실패, 대기 혹은 확정 수강 신청 중복")
     void whenApplyEnrollmentWithActiveEnrollment_expectEnrollmentAlreadyExistsException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -103,6 +108,7 @@ class EnrollmentApplierTest {
     }
 
     @Test
+    @DisplayName("수강 신청 - 성공, 취소 이력은 재신청 가능")
     void whenApplyEnrollmentWithCancelledEnrollment_expectEnrollmentCreated() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -119,6 +125,7 @@ class EnrollmentApplierTest {
     }
 
     @Test
+    @DisplayName("수강 신청 - 실패, 정원 초과")
     void whenApplyEnrollmentWithFullCapacity_expectEnrollmentCapacityExceededException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User pendingStudent = userRepository.save(UserFixture.createStudent("pending@test.com"));
@@ -137,6 +144,7 @@ class EnrollmentApplierTest {
     }
 
     @Test
+    @DisplayName("수강 신청 - 성공, 취소 이력은 정원에서 제외")
     void whenApplyEnrollmentWithOnlyCancelledEnrollment_expectCapacityAvailable() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User cancelledStudent = userRepository.save(UserFixture.createStudent("cancelled@test.com"));

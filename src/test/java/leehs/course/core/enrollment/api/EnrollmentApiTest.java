@@ -6,6 +6,7 @@ import java.io.UnsupportedEncodingException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -51,6 +52,7 @@ class EnrollmentApiTest {
     final UserRepository userRepository;
 
     @Test
+    @DisplayName("수강 신청 API - 성공")
     void whenApplyEnrollmentRequestIsValid_expectCreatedEnrollmentResponse() throws JsonProcessingException, UnsupportedEncodingException {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -83,6 +85,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 신청 API - 실패, 강사 권한")
     void whenApplyEnrollmentWithCreator_expectForbiddenResponse() throws JsonProcessingException {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -104,6 +107,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 신청 API - 실패, 사용자 헤더 누락")
     void whenApplyEnrollmentWithoutUserIdHeader_expectUnauthorizedResponse() throws JsonProcessingException {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -125,6 +129,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 신청 API - 실패, 대기 혹은 확정 신청이 이미 있음")
     void whenApplyEnrollmentWithActiveEnrollment_expectConflictResponse() throws JsonProcessingException {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -149,6 +154,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 신청 API - 실패, 정원 초과")
     void whenApplyEnrollmentWithFullCapacity_expectConflictResponse() throws JsonProcessingException {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User existingStudent = userRepository.save(UserFixture.createStudent("existing@test.com"));
@@ -174,6 +180,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 신청 API - 실패, 강의 id 누락")
     void whenApplyEnrollmentWithInvalidRequest_expectBadRequestResponse() throws JsonProcessingException {
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
 
@@ -193,6 +200,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("내 수강 목록 조회 API - 성공")
     void whenGetMyEnrollmentsWithStudent_expectEnrollmentListResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -201,14 +209,11 @@ class EnrollmentApiTest {
         Course firstCourse = courseRepository.save(CourseFixture.createOpenCourse(creator));
         Course secondCourse = courseRepository.save(CourseFixture.createOpenCourse(creator));
 
-        Enrollment firstEnrollment = enrollmentRepository.save(
-            EnrollmentFixture.createEnrollment(firstCourse, student));
-        Enrollment secondEnrollment = enrollmentRepository.save(
-            EnrollmentFixture.createEnrollment(secondCourse, student));
+        Enrollment firstEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(firstCourse, student));
+        Enrollment secondEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(secondCourse, student));
         secondEnrollment.confirm();
 
-        Enrollment anotherEnrollment = enrollmentRepository.save(
-            EnrollmentFixture.createEnrollment(secondCourse, anotherStudent));
+        Enrollment anotherEnrollment = enrollmentRepository.save(EnrollmentFixture.createEnrollment(secondCourse, anotherStudent));
         anotherEnrollment.confirm();
         anotherEnrollment.cancel();
 
@@ -220,20 +225,17 @@ class EnrollmentApiTest {
             .hasStatus(HttpStatus.OK)
             .bodyJson()
             .hasPathSatisfying("$.length()", value -> assertThat(value).asNumber().isEqualTo(2))
-            .hasPathSatisfying("$[0].enrollmentId",
-                value -> assertThat(value).asNumber().isEqualTo(secondEnrollment.getId().intValue()))
-            .hasPathSatisfying("$[0].courseId",
-                value -> assertThat(value).asNumber().isEqualTo(secondCourse.getId().intValue()))
+            .hasPathSatisfying("$[0].enrollmentId", value -> assertThat(value).asNumber().isEqualTo(secondEnrollment.getId().intValue()))
+            .hasPathSatisfying("$[0].courseId", value -> assertThat(value).asNumber().isEqualTo(secondCourse.getId().intValue()))
             .hasPathSatisfying("$[0].courseTitle", value -> assertThat(value).isEqualTo(secondCourse.getTitle()))
             .hasPathSatisfying("$[0].status", value -> assertThat(value).isEqualTo("CONFIRMED"))
-            .hasPathSatisfying("$[1].enrollmentId",
-                value -> assertThat(value).asNumber().isEqualTo(firstEnrollment.getId().intValue()))
-            .hasPathSatisfying("$[1].courseId",
-                value -> assertThat(value).asNumber().isEqualTo(firstCourse.getId().intValue()))
+            .hasPathSatisfying("$[1].enrollmentId", value -> assertThat(value).asNumber().isEqualTo(firstEnrollment.getId().intValue()))
+            .hasPathSatisfying("$[1].courseId", value -> assertThat(value).asNumber().isEqualTo(firstCourse.getId().intValue()))
             .hasPathSatisfying("$[1].status", value -> assertThat(value).isEqualTo("PENDING"));
     }
 
     @Test
+    @DisplayName("내 수강 목록 조회 API - 실패, 강사 권한")
     void whenGetMyEnrollmentsWithCreator_expectForbiddenResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -248,6 +250,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 확정 API - 성공")
     void whenConfirmEnrollmentWithOwnerStudent_expectConfirmedEnrollmentResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -273,6 +276,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 확정 API - 실패, 강사 권한")
     void whenConfirmEnrollmentWithCreator_expectForbiddenResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -292,6 +296,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 확정 API - 실패, 본인 아님")
     void whenConfirmEnrollmentWithNonOwnerStudent_expectForbiddenResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User ownerStudent = userRepository.save(UserFixture.createStudent("owner@test.com"));
@@ -312,6 +317,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 확정 API - 실패, 존재하지 않는 수강 신청 내역")
     void whenConfirmEnrollmentThatDoesNotExist_expectNotFoundResponse() {
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
 
@@ -326,6 +332,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 확정 API - 실패, 이미 확정된 신청")
     void whenConfirmAlreadyConfirmedEnrollment_expectBadRequestResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -346,6 +353,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 취소 API - 성공, PENDING 상태")
     void whenCancelPendingEnrollmentWithOwnerStudent_expectCancelledEnrollmentResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -371,6 +379,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 취소 API - 성공, CONFIRMED 상태")
     void whenCancelConfirmedEnrollmentWithOwnerStudent_expectCancelledEnrollmentResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -396,6 +405,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 취소 API - 실패, 결제 확정 7일 초과")
     void whenCancelConfirmedEnrollmentAfterConfirmedWindow_expectBadRequestResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -419,6 +429,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 취소 API - 실패, 강의 시작일 이후")
     void whenCancelConfirmedEnrollmentOnCourseStartDate_expectBadRequestResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -441,6 +452,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 취소 API - 실패, 강사 권한")
     void whenCancelEnrollmentWithCreator_expectForbiddenResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -460,6 +472,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 취소 API - 실패, 본인 아님")
     void whenCancelEnrollmentWithNonOwnerStudent_expectForbiddenResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User ownerStudent = userRepository.save(UserFixture.createStudent("owner@test.com"));
@@ -480,6 +493,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 취소 API - 실패, 존재하지 않는 신청")
     void whenCancelEnrollmentThatDoesNotExist_expectNotFoundResponse() {
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
 
@@ -494,6 +508,7 @@ class EnrollmentApiTest {
     }
 
     @Test
+    @DisplayName("수강 취소 API - 실패, 이미 취소된 신청")
     void whenCancelAlreadyCancelledEnrollment_expectBadRequestResponse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));

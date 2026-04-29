@@ -9,6 +9,7 @@ import java.util.List;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,7 @@ class EnrollmentRepositoryTest {
     EntityManagerFactory emf;
 
     @Test
+    @DisplayName("수강 신청 count 집계 - 성공, 대기 혹은 확정 신청만 카운트")
     void whenCountByCourseIdAndStatusIn_expectOnlyMatchingStatusesCounted() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User pendingStudent = userRepository.save(UserFixture.createStudent("pending@test.com"));
@@ -71,6 +73,7 @@ class EnrollmentRepositoryTest {
     }
 
     @Test
+    @DisplayName("수강 신청 중복 조회 - 성공, 대기 혹은 활성 신청 존재")
     void whenExistsByCourseIdAndStudentIdAndStatusInWithActiveEnrollment_expectTrue() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -91,6 +94,7 @@ class EnrollmentRepositoryTest {
     }
 
     @Test
+    @DisplayName("수강 신청 중복 조회 - 성공, 취소 신청은 제외")
     void whenExistsByCourseIdAndStudentIdAndStatusInWithCancelledEnrollment_expectFalse() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -113,6 +117,7 @@ class EnrollmentRepositoryTest {
     }
 
     @Test
+    @DisplayName("내 수강 목록 조회 - 성공, 본인 신청만 최신순 반환")
     void whenFindAllByStudentIdOrderByIdDesc_expectOwnEnrollmentsReturnedAndCourseLoaded() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));

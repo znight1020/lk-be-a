@@ -3,6 +3,7 @@ package leehs.course.core.course.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ class CourseModifierTest {
     UserRepository userRepository;
 
     @Test
+    @DisplayName("강의 오픈 - 성공, 강의를 소유한 강사")
     void whenOpenCourseWithOwnerCreator_expectOpenStatus() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -46,6 +48,7 @@ class CourseModifierTest {
     }
 
     @Test
+    @DisplayName("강의 마감 - 성공, 강의를 소유한 강사")
     void whenCloseCourseWithOwnerCreator_expectClosedStatus() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -59,6 +62,7 @@ class CourseModifierTest {
     }
 
     @Test
+    @DisplayName("강의 오픈 - 실패, 학생 권한")
     void whenOpenCourseWithStudent_expectCourseManagementForbiddenException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -70,6 +74,7 @@ class CourseModifierTest {
     }
 
     @Test
+    @DisplayName("강의 오픈 - 실패, 강의를 소유하지 않은 강사")
     void whenOpenCourseWithNonOwnerCreator_expectCourseNotOwnerException() {
         User owner = userRepository.save(UserFixture.createCreator("owner@test.com"));
         User anotherCreator = userRepository.save(UserFixture.createCreator("another@test.com"));

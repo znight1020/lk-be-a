@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.UnsupportedEncodingException;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -43,6 +44,7 @@ class CourseApiTest {
     final ObjectMapper objectMapper;
 
     @Test
+    @DisplayName("강의 생성 API - 성공")
     void whenCreateCourseRequestIsValid_expectCreatedCourseResponse() throws JsonProcessingException, UnsupportedEncodingException {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
@@ -75,6 +77,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 생성 API - 실패, 학생 권한")
     void whenCreateCourseWithStudentUserId_expectForbiddenResponse() throws JsonProcessingException {
         User student = userRegister.register(UserFixture.createStudentRegisterCommand("student@test.com"));
 
@@ -94,6 +97,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 생성 API - 실패, 사용자 헤더 누락")
     void whenCreateCourseWithoutUserIdHeader_expectUnauthorizedResponse() throws JsonProcessingException {
         var request = CourseFixture.createCourseCreateRequest();
         String json = objectMapper.writeValueAsString(request);
@@ -111,6 +115,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 목록 조회 API - 성공, 상태 조건 없음")
     void whenGetCoursesWithoutStatus_expectCourseListResponse() {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
@@ -132,6 +137,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 목록 조회 API - 성공, OPEN 필터")
     void whenGetCoursesWithOpenStatus_expectOpenCourseListResponse() {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
@@ -153,6 +159,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 목록 조회 API - 실패, 잘못된 상태 값")
     void whenGetCoursesWithInvalidStatus_expectBadRequestResponse() {
         MvcTestResult result = mvcTester.get().uri("/courses?status=INVALID")
             .exchange();
@@ -164,6 +171,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 상세 조회 API - 성공")
     void whenGetCourseWithExistingId_expectCourseDetailResponse() {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
@@ -186,6 +194,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 상세 조회 API - 실패, 존재하지 않는 강의")
     void whenGetCourseWithNonExistingId_expectNotFoundResponse() {
         MvcTestResult result = mvcTester.get().uri("/courses/999")
             .exchange();
@@ -197,6 +206,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 오픈 API - 성공")
     void whenOpenCourseWithOwnerCreator_expectOpenCourseResponse() {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
@@ -217,6 +227,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 오픈 API - 실패, 학생 권한")
     void whenOpenCourseWithStudentUserId_expectForbiddenResponse() {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
         User student = userRegister.register(UserFixture.createStudentRegisterCommand("student@test.com"));
@@ -234,6 +245,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 오픈 API - 실패, 강의를 소유하지 않은 강사")
     void whenOpenCourseWithNonOwnerCreator_expectForbiddenResponse() {
         User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
         User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another@test.com"));
@@ -251,6 +263,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 마감 API - 성공")
     void whenCloseCourseWithOwnerCreator_expectClosedCourseResponse() {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
 
@@ -272,6 +285,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 마감 API - 실패, 학생 권한")
     void whenCloseCourseWithStudentUserId_expectForbiddenResponse() {
         User creator = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
         User student = userRegister.register(UserFixture.createStudentRegisterCommand("student@test.com"));
@@ -290,6 +304,7 @@ class CourseApiTest {
     }
 
     @Test
+    @DisplayName("강의 마감 API - 실패, 강의를 소유하지 않은 강사")
     void whenCloseCourseWithNonOwnerCreator_expectForbiddenResponse() {
         User owner = userRegister.register(UserFixture.createCreatorRegisterCommand("creator@test.com"));
         User anotherCreator = userRegister.register(UserFixture.createCreatorRegisterCommand("another@test.com"));

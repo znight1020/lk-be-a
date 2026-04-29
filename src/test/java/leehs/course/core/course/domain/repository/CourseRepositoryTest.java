@@ -10,6 +10,7 @@ import java.util.List;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,7 @@ class CourseRepositoryTest {
     EntityManagerFactory emf;
 
     @Test
+    @DisplayName("강의 목록 조회 - 성공")
     void whenFindAllByOrderByIdDesc_expectCreatorLoaded() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -61,6 +63,7 @@ class CourseRepositoryTest {
     }
 
     @Test
+    @DisplayName("강의 상태별 목록 조회 - 성공")
     void whenFindAllByStatusOrderByIdDesc_expectCreatorLoaded() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 
@@ -80,6 +83,7 @@ class CourseRepositoryTest {
     }
 
     @Test
+    @DisplayName("강의 상세 Projection 조회 - 성공")
     void whenFindDetailById_expectCourseDetailProjectionReturned() {
         User creator = userRepository.save(UserFixture.createCreator("creator-detail@test.com"));
         Course course = courseRepository.save(CourseFixture.createCourse(creator));
@@ -106,6 +110,7 @@ class CourseRepositoryTest {
     }
 
     @Test
+    @DisplayName("강의 상세 Projection 조회 - 성공, 대기, 확정 수강 신청만 집계")
     void whenFindDetailById_expectOnlyPendingAndConfirmedEnrollmentsCounted() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User pendingStudent = userRepository.save(UserFixture.createStudent("pending@test.com"));

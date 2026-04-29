@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 
 import java.io.UnsupportedEncodingException;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -42,6 +43,7 @@ class UserApiTest {
     final ObjectMapper objectMapper;
 
     @Test
+    @DisplayName("사용자 등록 API - 성공")
     void whenRegisterRequestIsValid_expectCreatedUserResponse() throws JsonProcessingException, UnsupportedEncodingException {
         var request = UserFixture.createUserRegisterRequest("test@test.com");
         String json = objectMapper.writeValueAsString(request);
@@ -67,6 +69,7 @@ class UserApiTest {
     }
 
     @Test
+    @DisplayName("사용자 등록 API - 실패, 중복 이메일")
     void whenRegisterRequestHasDuplicateEmail_expectClientErrorResponse() throws JsonProcessingException {
         userRegister.register(UserFixture.createCreatorRegisterCommand("duplicate@test.com"));
 
@@ -84,6 +87,7 @@ class UserApiTest {
     }
 
     @Test
+    @DisplayName("사용자 등록 API - 실패, 유효하지않은 역할")
     void whenRegisterRequestHasInvalidRole_expectClientErrorResponse() throws JsonProcessingException {
         var request = new UserRegisterRequest("invalid-role@test.com", "수강생", "INVALID");
         String json = objectMapper.writeValueAsString(request);

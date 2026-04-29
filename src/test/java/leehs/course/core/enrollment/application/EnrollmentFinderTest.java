@@ -8,6 +8,7 @@ import java.util.List;
 
 import jakarta.persistence.EntityManager;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,7 @@ class EnrollmentFinderTest {
     EntityManager em;
 
     @Test
+    @DisplayName("수강 신청 ID 기반 조회 - 성공")
     void whenFindExistingEnrollmentById_expectEnrollmentReturned() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -65,6 +67,7 @@ class EnrollmentFinderTest {
     }
 
     @Test
+    @DisplayName("수강 신청 ID 기반 조회 - 실패, 존재하지 않는 수강 신청 내역")
     void whenFindNonExistingEnrollmentById_expectEnrollmentNotFoundException() {
         Long nonExistentId = 999L;
 
@@ -73,6 +76,7 @@ class EnrollmentFinderTest {
     }
 
     @Test
+    @DisplayName("내 수강 목록 조회 - 성공, 학생 본인 신청만 최신순 반환")
     void whenFindAllMineWithStudent_expectOwnEnrollmentsReturnedInDescOrder() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -97,6 +101,7 @@ class EnrollmentFinderTest {
     }
 
     @Test
+    @DisplayName("내 수강 목록 조회 - 실패, 강사 권한")
     void whenFindAllMineWithCreator_expectEnrollmentForbiddenException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
 

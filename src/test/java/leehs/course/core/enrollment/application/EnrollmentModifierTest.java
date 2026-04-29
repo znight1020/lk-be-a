@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.EntityManager;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,7 @@ class EnrollmentModifierTest {
     EntityManager em;
 
     @Test
+    @DisplayName("수강 확정 - 성공, 학생 본인")
     void whenConfirmEnrollmentWithOwnerStudent_expectConfirmedEnrollment() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -72,6 +74,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 확정 - 실패, 강사 권한")
     void whenConfirmEnrollmentWithCreator_expectEnrollmentForbiddenException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -87,6 +90,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 확정 - 실패, 본인 아님")
     void whenConfirmEnrollmentWithNonOwnerStudent_expectEnrollmentNotOwnerException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User ownerStudent = userRepository.save(UserFixture.createStudent("owner@test.com"));
@@ -103,6 +107,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 확정 - 실패, 이미 확정된 신청")
     void whenConfirmAlreadyConfirmedEnrollment_expectEnrollmentStatusNotPendingException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -119,6 +124,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 취소 - 성공, PENDING 상태")
     void whenCancelPendingEnrollmentWithOwnerStudent_expectCancelledEnrollment() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -139,6 +145,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 취소 - 성공, CONFIRMED 상태")
     void whenCancelConfirmedEnrollmentWithOwnerStudent_expectCancelledEnrollment() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -161,6 +168,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 취소 - 실패, 결제 확정 7일 초과")
     void whenCancelConfirmedEnrollmentAfterConfirmedWindow_expectEnrollmentCancellationPeriodExpiredException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -179,6 +187,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 취소 - 실패, 강의 시작일 이후 취소")
     void whenCancelConfirmedEnrollmentOnCourseStartDate_expectEnrollmentCancellationPeriodExpiredException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -196,6 +205,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 취소 - 실패, 강사 권한")
     void whenCancelEnrollmentWithCreator_expectEnrollmentForbiddenException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
@@ -211,6 +221,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 취소 - 실패, 본인 아님")
     void whenCancelEnrollmentWithNonOwnerStudent_expectEnrollmentNotOwnerException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User ownerStudent = userRepository.save(UserFixture.createStudent("owner@test.com"));
@@ -227,6 +238,7 @@ class EnrollmentModifierTest {
     }
 
     @Test
+    @DisplayName("수강 취소 - 실패, 이미 취소된 신청")
     void whenCancelAlreadyCancelledEnrollment_expectEnrollmentStatusAlreadyCancelledException() {
         User creator = userRepository.save(UserFixture.createCreator("creator@test.com"));
         User student = userRepository.save(UserFixture.createStudent("student@test.com"));
